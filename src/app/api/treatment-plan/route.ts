@@ -98,13 +98,70 @@ export async function POST(req: Request) {
     if (err) return NextResponse.json({ error: err }, { status: 403 });
 
     const body = await req.json();
+    let targetVisitId = body.visit_id;
+
+    if (!targetVisitId && body.patient_id) {
+      const recentVisit = await sql`
+        SELECT id FROM visits
+        WHERE patient_id = ${body.patient_id} AND status = 'in_progress'
+        ORDER BY date DESC LIMIT 1
+      `;
+      if (recentVisit.length > 0) {
+        targetVisitId = recentVisit[0].id;
+      } else {
+        const patientRows = await sql`SELECT branch_id FROM patients WHERE id = ${body.patient_id} LIMIT 1`;
+        if (patientRows.length > 0) {
+          targetVisitId = 'vis_' + Date.now().toString(36);
+          await sql`
+            INSERT INTO visits (id, branch_id, patient_id, dentist_id, chief_complaint)
+            VALUES (${targetVisitId}, ${patientRows[0].branch_id}, ${body.patient_id}, ${session.id}, 'Treatment Plan Consultation')
+          `;
+        }
+      }
+    }
+
+    // Handle batch creation of plan items
+    if (Array.isArray(body.items) && body.items.length > 0) {
+      if (!targetVisitId) {
+        return NextResponse.json({ error: 'visit_id or valid patient_id is required for batch items.' }, { status: 400 });
+      }
+
+      const insertedList = [];
+      for (const it of body.items) {
+        if (!it.procedure_name || !it.priority || it.unit_price === undefined) continue;
+        const id = 'tp_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const ins = await sql`
+          INSERT INTO treatment_plan_items (
+            id, visit_id, tooth_refs, procedure_name, priority, quantity, unit_price,
+            notes, insurance_claimable, payer_name, lab_job_required
+          ) VALUES (
+            ${id},
+            ${targetVisitId},
+            ${JSON.stringify(it.tooth_refs || [])}::jsonb,
+            ${it.procedure_name},
+            ${it.priority},
+            ${it.quantity || 1},
+            ${parseFloat(it.unit_price)},
+            ${it.notes || ''},
+            ${it.insurance_claimable || false},
+            ${it.payer_name || null},
+            ${it.lab_job_required || false}
+          )
+          RETURNING *
+        `;
+        if (ins.length > 0) insertedList.push(ins[0]);
+      }
+
+      return NextResponse.json({ items: insertedList, count: insertedList.length });
+    }
+
     const {
-      visit_id, tooth_refs, procedure_name, priority, quantity,
+      tooth_refs, procedure_name, priority, quantity,
       unit_price, notes, insurance_claimable, payer_name,
       lab_job_required
     } = body;
 
-    if (!visit_id || !procedure_name || !priority || unit_price === undefined) {
+    if (!targetVisitId || !procedure_name || !priority || unit_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields for treatment item.' }, { status: 400 });
     }
 
@@ -116,7 +173,7 @@ export async function POST(req: Request) {
         notes, insurance_claimable, payer_name, lab_job_required
       ) VALUES (
         ${id},
-        ${visit_id},
+        ${targetVisitId},
         ${JSON.stringify(tooth_refs || [])}::jsonb,
         ${procedure_name},
         ${priority},
@@ -131,7 +188,7 @@ export async function POST(req: Request) {
     `;
 
     // Get branch for activity log
-    const visitRows = await sql`SELECT branch_id FROM visits WHERE id = ${visit_id} LIMIT 1`;
+    const visitRows = await sql`SELECT branch_id FROM visits WHERE id = ${targetVisitId} LIMIT 1`;
     const branchId = visitRows.length > 0 ? visitRows[0].branch_id : null;
 
     await sql`

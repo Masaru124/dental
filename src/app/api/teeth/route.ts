@@ -17,11 +17,8 @@ export async function POST(req: Request) {
     const err = authorize(session, { roles: ['dentist'] });
     if (err) return NextResponse.json({ error: err }, { status: 403 });
 
-    const { visit_id, patient_id, tooth_number, condition, surfaces, notes } = await req.json();
-
-    if (!tooth_number || !condition) {
-      return NextResponse.json({ error: 'Tooth number and condition are required.' }, { status: 400 });
-    }
+    const body = await req.json();
+    const { visit_id, patient_id, tooth_number, condition, surfaces, notes, batch } = body;
 
     // Resolve or create visit
     let targetVisitId = visit_id;
@@ -59,6 +56,50 @@ export async function POST(req: Request) {
     }
     const branchErr = authorize(session, { branchId: visitRows[0].branch_id });
     if (branchErr) return NextResponse.json({ error: branchErr }, { status: 403 });
+
+    // Handle batch insert if provided
+    if (Array.isArray(batch) && batch.length > 0) {
+      const insertedRecords = [];
+      for (const item of batch) {
+        if (!item.tooth_number || !item.condition) continue;
+        const id = 'tr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const ins = await sql`
+          INSERT INTO tooth_records (id, visit_id, tooth_number, condition, surfaces, notes, recorded_by)
+          VALUES (
+            ${id},
+            ${targetVisitId},
+            ${item.tooth_number},
+            ${item.condition},
+            ${JSON.stringify(item.surfaces || [])}::jsonb,
+            ${item.notes || ''},
+            ${session.id}
+          )
+          RETURNING *
+        `;
+        if (ins.length > 0) insertedRecords.push(ins[0]);
+      }
+
+      await sql`
+        INSERT INTO activity_logs (id, branch_id, user_id, user_name, action, entity_type, entity_id, details)
+        VALUES (
+          ${'act_' + Date.now()},
+          ${visitRows[0].branch_id},
+          ${session.id},
+          ${session.name},
+          'BATCH_RECORD_TOOTH_FINDINGS',
+          'tooth_record',
+          ${targetVisitId},
+          ${JSON.stringify({ count: insertedRecords.length, teeth: batch.map(b => b.tooth_number) })}
+        )
+      `;
+
+      return NextResponse.json({ records: insertedRecords, count: insertedRecords.length });
+    }
+
+    // Single tooth update
+    if (!tooth_number || !condition) {
+      return NextResponse.json({ error: 'Tooth number and condition are required.' }, { status: 400 });
+    }
 
     const id = 'tr_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 

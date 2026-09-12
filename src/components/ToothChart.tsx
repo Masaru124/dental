@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Zap, Clock, RotateCcw, Wand2, Sparkles, ChevronRight, ChevronLeft, Check, CheckCircle2 } from 'lucide-react';
 
 export type ToothCondition = 'healthy' | 'caries' | 'filling' | 'crown' | 'missing';
 
@@ -27,17 +28,26 @@ interface ToothChartProps {
   onSelectTooth: (toothNumber: string) => void;
   aiFindings?: AIFindingItem[];
   readOnly?: boolean;
+  onQuickConditionChange?: (toothNumber: string, condition: ToothCondition) => void;
+  onBatchConditionChange?: (updates: Array<{ tooth_number: string; condition: ToothCondition }>) => void;
+  onAutoGeneratePlan?: () => void;
+  isAutoPlanLoading?: boolean;
 }
 
 // FDI 32 adult teeth numbering
-const UPPER_TEETH = [
+export const UPPER_TEETH = [
   '18', '17', '16', '15', '14', '13', '12', '11',
   '21', '22', '23', '24', '25', '26', '27', '28'
 ];
 
-const LOWER_TEETH = [
+export const LOWER_TEETH = [
   '48', '47', '46', '45', '44', '43', '42', '41',
   '31', '32', '33', '34', '35', '36', '37', '38'
+];
+
+export const ALL_TEETH_ORDER = [
+  ...UPPER_TEETH,
+  ...LOWER_TEETH
 ];
 
 const CONDITION_COLORS: Record<ToothCondition, { fill: string; stroke: string; label: string }> = {
@@ -54,9 +64,167 @@ export default function ToothChart({
   onSelectTooth,
   aiFindings = [],
   readOnly = false,
+  onQuickConditionChange,
+  onBatchConditionChange,
+  onAutoGeneratePlan,
+  isAutoPlanLoading = false,
 }: ToothChartProps) {
+  // Rapid 45-second charting mode states
+  const [rapidMode, setRapidMode] = useState(false);
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [internalActiveTooth, setInternalActiveTooth] = useState<string>('18');
+
+  // Timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (rapidMode && isTimerRunning) {
+      interval = setInterval(() => {
+        setSecondsElapsed((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [rapidMode, isTimerRunning]);
+
+  const toggleRapidMode = () => {
+    if (!rapidMode) {
+      setRapidMode(true);
+      setIsTimerRunning(true);
+      setInternalActiveTooth(selectedTooth || '18');
+      if (selectedTooth) {
+        onSelectTooth(''); // close slide drawer so it doesn't block charting
+      }
+    } else {
+      setRapidMode(false);
+      setIsTimerRunning(false);
+    }
+  };
+
+  const resetTimer = () => {
+    setSecondsElapsed(0);
+  };
+
+  // Move tooth in sequence
+  const advanceTooth = useCallback((direction: 1 | -1) => {
+    const currentTooth = rapidMode ? internalActiveTooth : (selectedTooth || '18');
+    const currentIndex = currentTooth ? ALL_TEETH_ORDER.indexOf(currentTooth) : -1;
+    let nextIndex = currentIndex + direction;
+    if (nextIndex >= ALL_TEETH_ORDER.length) nextIndex = 0;
+    if (nextIndex < 0) nextIndex = ALL_TEETH_ORDER.length - 1;
+    const nextTooth = ALL_TEETH_ORDER[nextIndex];
+    if (rapidMode) {
+      setInternalActiveTooth(nextTooth);
+    } else {
+      onSelectTooth(nextTooth);
+    }
+  }, [rapidMode, internalActiveTooth, selectedTooth, onSelectTooth]);
+
+  // Apply quick condition and automatically advance
+  const applyQuickCondition = useCallback((condition: ToothCondition) => {
+    const targetTooth = rapidMode ? internalActiveTooth : (selectedTooth || '18');
+    if (onQuickConditionChange) {
+      onQuickConditionChange(targetTooth, condition);
+    }
+    if (rapidMode) {
+      // Auto advance to next tooth for 45s rapid pace!
+      advanceTooth(1);
+    }
+  }, [rapidMode, internalActiveTooth, selectedTooth, onQuickConditionChange, advanceTooth]);
+
+  // Keyboard shortcut listener
+  useEffect(() => {
+    if (readOnly) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input, textarea, or contentEditable
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // Hotkeys active when rapidMode is on, or when a tooth is explicitly selected
+      if (!rapidMode && !selectedTooth) return;
+
+      const key = e.key.toLowerCase();
+
+      if (key === 'c') {
+        e.preventDefault();
+        applyQuickCondition('caries');
+      } else if (key === 'f') {
+        e.preventDefault();
+        applyQuickCondition('filling');
+      } else if (key === 'r') {
+        e.preventDefault();
+        applyQuickCondition('crown');
+      } else if (key === 'h') {
+        e.preventDefault();
+        applyQuickCondition('healthy');
+      } else if (key === 'm') {
+        e.preventDefault();
+        applyQuickCondition('missing');
+      } else if (e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) {
+        e.preventDefault();
+        advanceTooth(1);
+      } else if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
+        e.preventDefault();
+        advanceTooth(-1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [readOnly, rapidMode, selectedTooth, applyQuickCondition, advanceTooth]);
+
+  // Calculate pathology statistics
+  const defectStats = useMemo(() => {
+    let cariesCount = 0;
+    let crownCount = 0;
+    let missingCount = 0;
+    let filledCount = 0;
+
+    Object.values(records).forEach((r) => {
+      if (r.condition === 'caries') cariesCount++;
+      else if (r.condition === 'crown') crownCount++;
+      else if (r.condition === 'missing') missingCount++;
+      else if (r.condition === 'filling') filledCount++;
+    });
+
+    return {
+      cariesCount,
+      crownCount,
+      missingCount,
+      filledCount,
+      totalDefects: cariesCount + crownCount + missingCount,
+    };
+  }, [records]);
+
+  // Macro Preset actions
+  const applyMacro = (preset: 'upper_molars' | 'lower_molars' | 'anterior_cosmetic' | 'full_healthy') => {
+    if (!onBatchConditionChange) return;
+
+    if (preset === 'upper_molars') {
+      const teeth = ['18', '17', '16', '26', '27', '28'];
+      onBatchConditionChange(teeth.map((t) => ({ tooth_number: t, condition: 'caries' })));
+    } else if (preset === 'lower_molars') {
+      const teeth = ['48', '47', '46', '36', '37', '38'];
+      onBatchConditionChange(teeth.map((t) => ({ tooth_number: t, condition: 'crown' })));
+    } else if (preset === 'anterior_cosmetic') {
+      const teeth = ['13', '12', '11', '21', '22', '23'];
+      onBatchConditionChange(teeth.map((t) => ({ tooth_number: t, condition: 'filling' })));
+    } else if (preset === 'full_healthy') {
+      onBatchConditionChange(ALL_TEETH_ORDER.map((t) => ({ tooth_number: t, condition: 'healthy' })));
+    }
+  };
+
   // Map AI findings by tooth number
-  const aiFindingsByTooth = React.useMemo(() => {
+  const aiFindingsByTooth = useMemo(() => {
     const map: Record<string, AIFindingItem[]> = {};
     for (const f of aiFindings) {
       if (!map[f.tooth_number]) map[f.tooth_number] = [];
@@ -84,6 +252,9 @@ export default function ToothChart({
         onClick={() => onSelectTooth(toothNumber)}
         role="button"
         tabIndex={0}
+        id={`tooth-${toothNumber}`}
+        data-tooth={toothNumber}
+        data-condition={condition}
         aria-label={`Tooth ${toothNumber}, Status: ${colors.label}${hasAiFinding ? `, AI Finding: ${toothAiFindings[0].finding_type}` : ''}`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -104,6 +275,7 @@ export default function ToothChart({
           position: 'relative',
           transition: 'all 0.15s ease',
           userSelect: 'none',
+          boxShadow: isSelected ? '0 0 0 3px rgba(2, 132, 199, 0.25)' : 'none',
         }}
       >
         {/* Upper tooth number header */}
@@ -227,57 +399,296 @@ export default function ToothChart({
     );
   };
 
+  // Timer pacing styling
+  const timerBadgeColor = secondsElapsed < 30 ? '#10b981' : secondsElapsed <= 45 ? '#f59e0b' : '#ef4444';
+  const timerStatusLabel = secondsElapsed < 30 ? 'Pacing: Ultra-Rapid' : secondsElapsed <= 45 ? 'Pacing: On Target' : 'Pacing: Detailed Exam';
+
   return (
     <div className="panel-card" style={{ padding: '1.25rem' }}>
+      {/* Header & Rapid Mode Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h3 className="panel-title">FDI 2-Digit Dental Chart</h3>
-          <p style={{ fontSize: '12px', color: 'var(--color-ink-secondary, #64748b)' }}>
-            Click any tooth to examine surfaces, update clinical findings, or inspect AI overlays.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h3 className="panel-title" style={{ margin: 0 }}>FDI 2-Digit Dental Chart</h3>
+            {rapidMode && (
+              <span style={{
+                background: 'linear-gradient(135deg, #0284c7, #0ea5e9)',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '999px',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+                boxShadow: '0 2px 4px rgba(2, 132, 199, 0.3)'
+              }}>
+                ⚡ 45s Rapid Mode Active
+              </span>
+            )}
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--color-ink-secondary, #64748b)', margin: '4px 0 0 0' }}>
+            Click teeth or use <strong>[C/F/R/H/M] hotkeys</strong> to chart the entire mouth in under 45 seconds.
           </p>
         </div>
 
-        {/* Chart Legend with AI Indicator */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          {(['healthy', 'caries', 'filling', 'crown', 'missing'] as ToothCondition[]).map((cond) => {
-            const c = CONDITION_COLORS[cond];
-            return (
-              <div key={cond} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
-                <span
-                  style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '2px',
-                    backgroundColor: c.fill,
-                    border: `1.5px solid ${c.stroke}`,
-                    display: 'inline-block',
-                  }}
-                />
-                <span style={{ color: 'var(--color-ink-secondary, #475569)', textTransform: 'capitalize' }}>{c.label}</span>
-              </div>
-            );
-          })}
-          {/* AI Legend Tag */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
-            <span
+        {/* Rapid Mode Controls & Timer */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Rapid Mode Toggle Button */}
+          <button
+            id="toggle-rapid-mode-btn"
+            onClick={toggleRapidMode}
+            className="btn btn-sm"
+            style={{
+              background: rapidMode ? '#0284c7' : '#f1f5f9',
+              color: rapidMode ? '#ffffff' : '#0f172a',
+              border: rapidMode ? '1px solid #0369a1' : '1px solid #cbd5e1',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Zap size={14} color={rapidMode ? '#fbbf24' : '#64748b'} />
+            <span>{rapidMode ? 'Exit Rapid Mode' : '⚡ 45s Rapid Mode'}</span>
+          </button>
+
+          {/* Live Timer Ticker */}
+          <div
+            id="rapid-charting-timer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              background: '#0f172a',
+              color: '#ffffff',
+              fontSize: '12px',
+              fontWeight: 700,
+              fontFamily: 'monospace',
+            }}
+          >
+            <Clock size={13} color={timerBadgeColor} />
+            <span style={{ color: timerBadgeColor }}>
+              00:{secondsElapsed.toString().padStart(2, '0')}s
+            </span>
+            <span style={{ color: '#94a3b8', fontSize: '10px' }}>/ &lt;45s</span>
+            {secondsElapsed > 0 && (
+              <button
+                onClick={resetTimer}
+                title="Reset timer"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '0 2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <RotateCcw size={11} />
+              </button>
+            )}
+          </div>
+
+          {/* 1-Click Auto-Generate Phased Treatment Plan */}
+          {onAutoGeneratePlan && (
+            <button
+              id="auto-generate-plan-btn"
+              onClick={onAutoGeneratePlan}
+              disabled={isAutoPlanLoading}
+              className="btn btn-sm"
               style={{
-                width: '14px',
-                height: '10px',
-                borderRadius: '3px',
-                background: '#f59e0b',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 color: '#ffffff',
-                fontSize: '8px',
-                fontWeight: 800,
-                display: 'inline-flex',
+                border: 'none',
+                fontWeight: 700,
+                display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)',
               }}
             >
-              AI
+              <Wand2 size={14} />
+              <span>
+                {isAutoPlanLoading
+                  ? 'Generating Plan...'
+                  : `⚡ Auto-Generate Plan (${defectStats.totalDefects} Findings)`}
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Rapid Mode Hotkey & Macro Bar (Collapsible or always visible when rapidMode is on) */}
+      <div
+        id="rapid-hotkey-bar"
+        style={{
+          background: rapidMode ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' : '#f8fafc',
+          border: rapidMode ? '1px solid #334155' : '1px solid #e2e8f0',
+          borderRadius: '8px',
+          padding: '10px 14px',
+          marginBottom: '1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          transition: 'all 0.2s ease',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          {/* Active Tooth & Keyboard Hotkeys */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: rapidMode ? '#93c5fd' : '#475569', textTransform: 'uppercase' }}>
+              Active Tooth: <strong style={{ color: rapidMode ? '#38bdf8' : '#0284c7' }}>#{selectedTooth || 'None (Click tooth)'}</strong>
             </span>
-            <span style={{ color: '#d97706', fontWeight: 600 }}>AI Finding</span>
+
+            {/* Quick condition hotkey badges */}
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {[
+                { key: 'C', label: 'Caries', cond: 'caries' as ToothCondition, bg: '#f59e0b', color: '#fff' },
+                { key: 'F', label: 'Filling', cond: 'filling' as ToothCondition, bg: '#3b82f6', color: '#fff' },
+                { key: 'R', label: 'Crown/RCT', cond: 'crown' as ToothCondition, bg: '#8b5cf6', color: '#fff' },
+                { key: 'H', label: 'Healthy', cond: 'healthy' as ToothCondition, bg: '#10b981', color: '#fff' },
+                { key: 'M', label: 'Missing', cond: 'missing' as ToothCondition, bg: '#64748b', color: '#fff' },
+              ].map((hk) => (
+                <button
+                  key={hk.key}
+                  id={`hotkey-btn-${hk.cond}`}
+                  onClick={() => applyQuickCondition(hk.cond)}
+                  title={`Hotkey [${hk.key}]: Set tooth #${selectedTooth || 'current'} to ${hk.label}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 7px',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    background: hk.bg,
+                    color: hk.color,
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  <kbd style={{ background: 'rgba(0,0,0,0.25)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>
+                    {hk.key}
+                  </kbd>
+                  <span>{hk.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Navigation arrows */}
+            <div style={{ display: 'flex', gap: '2px' }}>
+              <button
+                id="prev-tooth-btn"
+                onClick={() => advanceTooth(-1)}
+                title="Previous Tooth (ArrowLeft / Shift+Tab)"
+                style={{
+                  padding: '3px 6px',
+                  borderRadius: '4px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  color: '#0f172a',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <ChevronLeft size={13} />
+              </button>
+              <button
+                id="next-tooth-btn"
+                onClick={() => advanceTooth(1)}
+                title="Next Tooth (ArrowRight / Tab)"
+                style={{
+                  padding: '3px 6px',
+                  borderRadius: '4px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  color: '#0f172a',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <ChevronRight size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Timer status badge */}
+          <div style={{ fontSize: '11px', fontWeight: 600, color: timerBadgeColor }}>
+            ● {timerStatusLabel}
           </div>
         </div>
+
+        {/* Macro Clinical Batch Presets */}
+        {onBatchConditionChange && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', borderTop: rapidMode ? '1px solid #334155' : '1px dashed #cbd5e1', paddingTop: '6px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, color: rapidMode ? '#94a3b8' : '#64748b', textTransform: 'uppercase' }}>
+              ⚡ Chairside Macros:
+            </span>
+            <button
+              id="macro-upper-molars"
+              onClick={() => applyMacro('upper_molars')}
+              className="btn btn-sm"
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                background: rapidMode ? '#334155' : '#ffffff',
+                color: rapidMode ? '#f1f5f9' : '#0f172a',
+                border: rapidMode ? '1px solid #475569' : '1px solid #cbd5e1',
+              }}
+            >
+              Upper Molars Caries (18-16, 26-28)
+            </button>
+            <button
+              id="macro-lower-molars"
+              onClick={() => applyMacro('lower_molars')}
+              className="btn btn-sm"
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                background: rapidMode ? '#334155' : '#ffffff',
+                color: rapidMode ? '#f1f5f9' : '#0f172a',
+                border: rapidMode ? '1px solid #475569' : '1px solid #cbd5e1',
+              }}
+            >
+              Lower Molars RCT/Crowns (46-48, 36-38)
+            </button>
+            <button
+              id="macro-anterior-cosmetic"
+              onClick={() => applyMacro('anterior_cosmetic')}
+              className="btn btn-sm"
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                background: rapidMode ? '#334155' : '#ffffff',
+                color: rapidMode ? '#f1f5f9' : '#0f172a',
+                border: rapidMode ? '1px solid #475569' : '1px solid #cbd5e1',
+              }}
+            >
+              Anterior Cosmetic Fillings (13-23)
+            </button>
+            <button
+              id="macro-full-healthy"
+              onClick={() => applyMacro('full_healthy')}
+              className="btn btn-sm"
+              style={{
+                fontSize: '11px',
+                padding: '2px 8px',
+                background: rapidMode ? '#334155' : '#ffffff',
+                color: rapidMode ? '#f1f5f9' : '#0f172a',
+                border: rapidMode ? '1px solid #475569' : '1px solid #cbd5e1',
+              }}
+            >
+              Full Mouth Scaled (All Healthy)
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Dental Arch SVG Layout Container */}

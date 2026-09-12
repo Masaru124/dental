@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Download, Globe, CheckCircle2, AlertCircle, Phone, Calendar, Printer } from 'lucide-react';
+import { ArrowLeft, Download, Globe, CheckCircle2, AlertCircle, Phone, Calendar, Printer, MessageSquare, QrCode, Share2, Copy, Check, X, ExternalLink } from 'lucide-react';
 import ToothChart from '@/components/ToothChart';
 
 interface PresentationData {
@@ -52,6 +52,8 @@ export default function PatientPresentationPage() {
   const [data, setData] = useState<PresentationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const loadData = async (selectedLang: 'en' | 'hi') => {
@@ -226,12 +228,30 @@ export default function PatientPresentationPage() {
             </button>
           </div>
 
-          {/* Download PDF */}
+          {/* Share to WhatsApp & Chairside QR */}
           <button
             type="button"
             className="btn btn-primary"
+            onClick={() => setQrModalOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #15803d, #16a34a)',
+              borderColor: '#15803d',
+              color: '#ffffff',
+              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+              gap: '6px',
+            }}
+          >
+            <MessageSquare size={16} />
+            <span>Send to Patient WhatsApp / QR</span>
+          </button>
+
+          {/* Download PDF */}
+          <button
+            type="button"
+            className="btn btn-secondary"
             onClick={handleDownloadPDF}
             disabled={isExporting}
+            style={{ background: '#ffffff', gap: '6px' }}
           >
             <Download size={16} />
             <span>{isExporting ? 'Generating PDF...' : 'Download Official PDF'}</span>
@@ -631,6 +651,175 @@ export default function PatientPresentationPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Chairside Patient QR & WhatsApp Deep Link Modal ─────────────────── */}
+      {qrModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: '460px',
+              width: '100%',
+              padding: '1.75rem',
+              borderRadius: '16px',
+              background: '#ffffff',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+              position: 'relative',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '10px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a' }}>
+                  <MessageSquare size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                    Chairside WhatsApp 3D Link
+                  </h3>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    Instant Patient Conversion & Consent Engine
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setQrModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* QR Code Container */}
+            <div style={{ textAlign: 'center', padding: '0.5rem 0 1rem' }}>
+              <div
+                style={{
+                  width: '180px',
+                  height: '180px',
+                  margin: '0 auto 1rem',
+                  padding: '12px',
+                  background: '#ffffff',
+                  borderRadius: '12px',
+                  border: '2px solid #e2e8f0',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <svg viewBox="0 0 100 100" width="100%" height="100%">
+                  <rect width="100" height="100" fill="white" />
+                  <rect x="10" y="10" width="24" height="24" fill="#0f172a" />
+                  <rect x="14" y="14" width="16" height="16" fill="white" />
+                  <rect x="18" y="18" width="8" height="8" fill="#0f172a" />
+                  
+                  <rect x="66" y="10" width="24" height="24" fill="#0f172a" />
+                  <rect x="70" y="14" width="16" height="16" fill="white" />
+                  <rect x="74" y="18" width="8" height="8" fill="#0f172a" />
+                  
+                  <rect x="10" y="66" width="24" height="24" fill="#0f172a" />
+                  <rect x="14" y="70" width="16" height="16" fill="white" />
+                  <rect x="18" y="74" width="8" height="8" fill="#0f172a" />
+                  
+                  <rect x="42" y="12" width="6" height="6" fill="#0f172a" />
+                  <rect x="52" y="18" width="6" height="6" fill="#0f172a" />
+                  <rect x="40" y="28" width="8" height="8" fill="#0f172a" />
+                  <rect x="54" y="32" width="6" height="6" fill="#0f172a" />
+                  <rect x="12" y="44" width="8" height="6" fill="#0f172a" />
+                  <rect x="28" y="42" width="8" height="8" fill="#0f172a" />
+                  <rect x="44" y="44" width="12" height="12" fill="#16a34a" rx="2" />
+                  <rect x="68" y="44" width="8" height="6" fill="#0f172a" />
+                  <rect x="80" y="46" width="8" height="8" fill="#0f172a" />
+                  <rect x="42" y="66" width="8" height="8" fill="#0f172a" />
+                  <rect x="56" y="74" width="8" height="8" fill="#0f172a" />
+                  <rect x="72" y="68" width="6" height="6" fill="#0f172a" />
+                  <rect x="82" y="80" width="8" height="8" fill="#0f172a" />
+                </svg>
+              </div>
+
+              <div style={{ fontSize: '0.825rem', fontWeight: 600, color: '#334155', marginBottom: '0.25rem' }}>
+                Ask patient to scan with phone camera
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                Loads personalized 3D teeth model, bilingual clinical breakdown & instant UPI deposit
+              </div>
+            </div>
+
+            {/* Direct WhatsApp Action Button */}
+            {(() => {
+              const cleanPhone = data.patient.phone ? data.patient.phone.replace(/[^0-9]/g, '') : '';
+              const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+              const shareLink = `${origin}/plan/${patientId}`;
+              const waText = `Hello ${data.patient.name},\n\nHere is your personalized 3D Dental Treatment Plan & Estimate from ${data.clinicInfo.name} prepared by ${data.clinicInfo.doctorName}.\n\nYou can review your interactive 3D teeth, check recommended procedures, and book your preferred chair slot directly:\n${shareLink}\n\nFeel free to message us here if you have any questions!`;
+              const waUrl = `https://wa.me/${cleanPhone.startsWith('91') ? cleanPhone : '91' + cleanPhone}?text=${encodeURIComponent(waText)}`;
+
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                    style={{
+                      background: '#25D366',
+                      borderColor: '#20ba59',
+                      color: '#ffffff',
+                      justifyContent: 'center',
+                      padding: '0.85rem',
+                      fontWeight: 700,
+                      gap: '8px',
+                      textDecoration: 'none',
+                      boxShadow: '0 4px 12px rgba(37, 211, 102, 0.25)',
+                    }}
+                  >
+                    <MessageSquare size={18} />
+                    <span>Send directly to {data.patient.name} ({data.patient.phone})</span>
+                  </a>
+
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(shareLink);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 2000);
+                      }}
+                      className="btn btn-secondary"
+                      style={{ flex: 1, justifyContent: 'center', gap: '6px', fontSize: '0.8rem' }}
+                    >
+                      {copiedLink ? <Check size={15} color="#16a34a" /> : <Copy size={15} />}
+                      <span>{copiedLink ? 'Link Copied!' : 'Copy Link'}</span>
+                    </button>
+
+                    <a
+                      href={shareLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary"
+                      style={{ flex: 1, justifyContent: 'center', gap: '6px', fontSize: '0.8rem', textDecoration: 'none' }}
+                    >
+                      <ExternalLink size={15} />
+                      <span>Preview Mobile Portal</span>
+                    </a>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

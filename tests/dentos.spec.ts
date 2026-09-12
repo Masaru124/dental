@@ -162,4 +162,320 @@ test.describe('DentOS v2 Comprehensive End-to-End Test Suite', () => {
     await expect(page.locator('h1')).toContainText('Practice Dashboard');
   });
 
+  test('13: Chairside WhatsApp 3D Link & QR Modal', async ({ page }) => {
+    await page.goto('http://localhost:3000/patients/pat_aarav_101/presentation');
+    await expect(page.locator('h1')).toContainText('Apex Dental');
+
+    // Click Send to Patient WhatsApp / QR
+    const shareBtn = page.locator('button:has-text("Send to Patient WhatsApp / QR")');
+    await expect(shareBtn).toBeVisible();
+    await shareBtn.click();
+
+    // Verify modal elements
+    await expect(page.locator('text=Chairside WhatsApp 3D Link')).toBeVisible();
+    await expect(page.locator('text=Ask patient to scan with phone camera')).toBeVisible();
+    await expect(page.locator('text=Send directly to')).toBeVisible();
+    await expect(page.locator('button:has-text("Copy Link")')).toBeVisible();
+    await expect(page.locator('a:has-text("Preview Mobile Portal")')).toBeVisible();
+  });
+
+  test('14: Mobile-First Patient 3D Portal & Conversion Engine', async ({ page }) => {
+    await page.goto('http://localhost:3000/plan/pat_aarav_101');
+
+    // Verify brand header and patient greeting
+    await expect(page.locator('header').locator('text=Apex Dental')).toBeVisible();
+    await expect(page.locator('text=Welcome, Aarav Patel')).toBeVisible();
+    await expect(page.locator('text=Interactive 3D Oral Health Record')).toBeVisible();
+
+    // Verify bilingual toggle
+    const hindiBtn = page.locator('button:has-text("हिंदी")');
+    await hindiBtn.click();
+    await expect(page.locator('text=नमस्ते, Aarav Patel')).toBeVisible();
+
+    const engBtn = page.locator('button:has-text("English")');
+    await engBtn.click();
+    await expect(page.locator('text=Welcome, Aarav Patel')).toBeVisible();
+
+    // Verify treatment & cost estimate
+    await expect(page.locator('text=Treatment & Cost Estimate')).toBeVisible();
+    await expect(page.locator('text=Net Treatment Estimate')).toBeVisible();
+
+    // Test UPI Modal Conversion Trigger
+    const bookBtn = page.locator('button:has-text("Accept Plan & Book Slot")');
+    await expect(bookBtn).toBeVisible();
+    await bookBtn.click();
+
+    // Verify UPI Payment dialog
+    await expect(page.locator('text=Instant UPI Appointment Deposit')).toBeVisible();
+    await expect(page.locator('button:has-text("Simulate")')).toBeVisible();
+
+    // Simulate payment
+    await page.locator('button:has-text("Simulate")').click();
+    await expect(page.locator('text=Treatment Plan Accepted!')).toBeVisible();
+  });
+
+  test('15: Milestone Ledger, Operatory Chair Economics & Lab Reconciler', async ({ page }) => {
+    await page.goto('http://localhost:3000/billing');
+
+    // Default view: Invoices
+    await expect(page.locator('#billing-tab-invoices')).toBeVisible();
+
+    // 1. Switch to Milestones & Advance Ledger tab
+    const milestoneTab = page.locator('#billing-tab-milestones');
+    await expect(milestoneTab).toBeVisible();
+    await milestoneTab.click();
+
+    await expect(page.locator('text=Active Multi-Sitting Pipeline')).toBeVisible();
+    await expect(page.locator('text=Sitting 1: Abutment Prep')).toBeVisible();
+    await expect(page.locator('text=Sitting 2: Lab CAD/CAM Bisque')).toBeVisible();
+    await expect(page.locator('text=Sitting 3: Final Resin Cementation')).toBeVisible();
+
+    // Test Advance Deposit Modal
+    const depositBtn = page.locator('#record-deposit-btn');
+    await expect(depositBtn).toBeVisible();
+    await depositBtn.click();
+    await expect(page.locator('text=Record Advance Patient Deposit')).toBeVisible();
+    await page.locator('#submit-deposit-btn').click();
+    await expect(page.locator('text=Advance Deposit credited')).toBeVisible();
+
+    // 2. Switch to Operatory Chair Economics tab
+    const chairsTab = page.locator('#billing-tab-chairs');
+    await expect(chairsTab).toBeVisible();
+    await chairsTab.click();
+
+    await expect(page.locator('text=Average Net Profit / Chair-Hour')).toBeVisible();
+    await expect(page.locator('text=Operatory 1: Surgical & Implant Suite')).toBeVisible();
+    await expect(page.locator('text=Operatory 2: Prostho & Aesthetic Studio')).toBeVisible();
+    await expect(page.locator('text=Operatory 3: General & Pediatric Bay')).toBeVisible();
+    await expect(page.locator('text=Net Clinic Contribution').first()).toBeVisible();
+
+    // 3. Switch to Dental Lab Split Reconciler tab
+    const labTab = page.locator('#billing-tab-lab');
+    await expect(labTab).toBeVisible();
+    await labTab.click();
+
+    await expect(page.locator('text=Net Clinic Retained Margin')).toBeVisible();
+    await expect(page.locator('text=Commercial Lab Payouts')).toBeVisible();
+    await expect(page.locator('text=Apex Aesthetics Milling Centre')).toBeVisible();
+    await expect(page.locator('text=Margin %')).toBeVisible();
+  });
+
+  test('16: 45-Second Rapid Intraoral Charting Flow, Macros & 1-Click Plan Generation', async ({ page }) => {
+    await page.goto('http://localhost:3000/patients/pat_aarav_101');
+
+    // Wait for patient header to load
+    await expect(page.locator('h1')).toContainText('Aarav Patel', { timeout: 15000 });
+
+    // Switch to 2D view to inspect chart
+    const view2dBtn = page.locator('button:has-text("2D FDI Chart")');
+    await view2dBtn.click();
+
+    // Verify FDI Dental Chart
+    await expect(page.locator('text=FDI 2-Digit Dental Chart')).toBeVisible();
+
+    // Verify Rapid Mode controls
+    const rapidBtn = page.locator('#toggle-rapid-mode-btn');
+    await expect(rapidBtn).toBeVisible();
+    await rapidBtn.click();
+
+    // Check Rapid Mode badge and timer
+    await expect(page.locator('text=⚡ 45s Rapid Mode Active')).toBeVisible();
+    await expect(page.locator('#rapid-charting-timer')).toBeVisible();
+
+    // Verify hotkey buttons
+    await expect(page.locator('#hotkey-btn-caries')).toBeVisible();
+    await expect(page.locator('#hotkey-btn-crown')).toBeVisible();
+
+    // Test Macro preset: Upper Molars Caries
+    const upperMolarsMacro = page.locator('#macro-upper-molars');
+    await expect(upperMolarsMacro).toBeVisible();
+    await upperMolarsMacro.click();
+
+    // Wait for macro toast notification
+    await expect(page.locator('text=Macro applied')).toBeVisible();
+
+    // Test 1-Click Auto-Generate Plan
+    const autoPlanBtn = page.locator('#auto-generate-plan-btn');
+    await expect(autoPlanBtn).toBeVisible();
+    await autoPlanBtn.click();
+
+    // Verify auto-generation toast
+    await expect(page.locator('text=Generated')).toBeVisible();
+
+    // Verify Treatment Plan Section displays planned procedures
+    await expect(page.locator('text=Treatment Plan')).toBeVisible();
+    await expect(page.locator('text=Class II Composite Restoration').first()).toBeVisible();
+  });
+
+  test('17: 3D Disease Progression & Delay Penalty Simulator (Normal + Edge Cases)', async ({ page }) => {
+    await page.goto('http://localhost:3000/plan/pat_aarav_101');
+
+    // Wait for patient portal header
+    await expect(page.locator('text=Interactive 3D Oral Health Record')).toBeVisible({ timeout: 15000 });
+
+    // 1. Verify Disease Progression Simulator card is rendered
+    const simulator = page.locator('#disease-progression-simulator');
+    await expect(simulator).toBeVisible();
+    await expect(page.locator('text=3D Disease Progression & Delay Penalty Simulator')).toBeVisible();
+
+    // 2. Normal Case: Stage 'Today' (baseline)
+    await expect(page.locator('#stage-btn-today')).toBeVisible();
+    await expect(page.locator('text=Early Intervention')).toBeVisible();
+    await expect(page.locator('text=1 / 10')).toBeVisible();
+    await expect(page.locator('text=₹2,000').first()).toBeVisible();
+
+    // 3. Normal Case: Switch to '+6 Months' stage
+    await page.locator('#stage-btn-6mo').click();
+    await expect(page.locator('text=Urgent / Pulpitis')).toBeVisible();
+    await expect(page.locator('text=8 / 10')).toBeVisible();
+    await expect(page.locator('text=₹14,500').first()).toBeVisible();
+    await expect(page.locator('text=₹12,500 Delay Cost Penalty')).toBeVisible();
+
+    // 4. Normal Case: Switch to '+12 Months' stage
+    await page.locator('#stage-btn-12mo').click();
+    await expect(page.locator('text=Irreversible Loss')).toBeVisible();
+    await expect(page.locator('text=10 / 10')).toBeVisible();
+    await expect(page.locator('text=₹42,000').first()).toBeVisible();
+    await expect(page.locator('text=₹40,000 Delay Cost Penalty')).toBeVisible();
+
+    // 5. Edge Case: Interactive Slider control
+    const slider = page.locator('#disease-delay-slider');
+    await expect(slider).toBeVisible();
+    await slider.fill('0');
+    await expect(page.locator('text=Early Intervention')).toBeVisible();
+
+    // 6. Edge Case: Bilingual Hindi Translation
+    const hindiBtn = page.locator('button:has-text("हिंदी")');
+    await hindiBtn.click();
+    await expect(page.locator('text=उपचार में देरी का जोखिम व खर्च वृद्धि सिमुलेटर')).toBeVisible();
+    await page.locator('#stage-btn-6mo').click();
+    await expect(page.locator('text=+6 महीने: नस तक संक्रमण व तीव्र दर्द')).toBeVisible();
+    await expect(page.locator('text=अतिरिक्त नुकसान')).toBeVisible();
+
+    // Revert back to English
+    await page.locator('button:has-text("English")').click();
+  });
+
+  test('18: Visiting Consultant Commission & Statutory 194J TDS Settlement Engine', async ({ page }) => {
+    await page.goto('http://localhost:3000/billing');
+    await expect(page.locator('h1')).toContainText('GST Invoicing', { timeout: 15000 });
+
+    // 1. Switch to 5th Tab: Visiting Specialist Splits & 194J TDS
+    const consultantTab = page.locator('#billing-tab-consultants');
+    await expect(consultantTab).toBeVisible();
+    await consultantTab.click();
+
+    // 2. Verify Executive KPI Cards
+    await expect(page.locator('text=Gross Visiting Case Revenue')).toBeVisible();
+    await expect(page.locator('text=Visiting Doctor Net Payouts')).toBeVisible();
+    await expect(page.locator('text=Section 194J TDS Retained (10%)')).toBeVisible();
+    await expect(page.locator('text=Hospital Retained Surgical Margin')).toBeVisible();
+
+    // 3. Verify Waterfall Ledger columns & rows
+    await expect(page.locator('text=Visiting Specialist Fee Waterfall & Statutory TDS Ledger')).toBeVisible();
+    await expect(page.locator('td:has-text("Dr. Vikram Malhotra")').first()).toBeVisible();
+    await expect(page.locator('td:has-text("Dr. Ananya Roy")').first()).toBeVisible();
+    await expect(page.locator('td:has-text("Dr. Sameer Khan")').first()).toBeVisible();
+
+    // 4. Edge Case: Filter by Specialist dropdown
+    const filterSelect = page.locator('#consultant-filter-select');
+    await expect(filterSelect).toBeVisible();
+    await filterSelect.selectOption('Dr. Vikram Malhotra');
+    await expect(page.locator('td:has-text("Dr. Vikram Malhotra")').first()).toBeVisible();
+    await expect(page.locator('td:has-text("Dr. Sameer Khan")')).not.toBeVisible();
+
+    // Reset filter
+    await filterSelect.selectOption('all');
+    await expect(page.locator('td:has-text("Dr. Sameer Khan")').first()).toBeVisible();
+
+    // 5. Normal Case: Disburse Settlement with NEFT UTR
+    const disburseBtn = page.locator('#disburse-btn-CON-901');
+    await expect(disburseBtn).toBeVisible();
+    await disburseBtn.click();
+
+    // Check modal contents
+    await expect(page.locator('#disburse-settlement-modal')).toBeVisible();
+    await expect(page.locator('text=Section 194J TDS Withholding & NEFT Bank Advice')).toBeVisible();
+    await expect(page.locator('#disburse-settlement-modal').getByText('₹11,700')).toBeVisible();
+
+    // Fill Bank UTR and submit
+    await page.locator('#utr-input').fill('NEFT-AXIS-994102');
+    await page.locator('#submit-disbursement-btn').click();
+
+    // Verify toast & status updated to DISBURSED
+    await expect(page.locator('text=disbursed to Dr. Vikram Malhotra')).toBeVisible();
+    await expect(page.locator('text=✓ DISBURSED').first()).toBeVisible();
+
+    // 6. WhatsApp Voucher generation test
+    const voucherBtn = page.locator('#voucher-btn-CON-902');
+    await expect(voucherBtn).toBeVisible();
+    await voucherBtn.click();
+    await expect(page.locator('text=WhatsApp Payment Advice Voucher dispatched')).toBeVisible();
+  });
+
+  test('19: 3D Medico-Legal Touch/Stylus e-Consent & Signature Pad (Normal + Edge Cases)', async ({ page }) => {
+    await page.goto('http://localhost:3000/plan/pat_aarav_101');
+    await expect(page.locator('text=Interactive 3D Oral Health Record')).toBeVisible({ timeout: 15000 });
+
+    // 1. Open e-Consent Modal
+    const openConsentBtn = page.locator('#open-consent-btn');
+    await expect(openConsentBtn).toBeVisible();
+    await openConsentBtn.click();
+
+    const consentModal = page.locator('#consent-modal');
+    await expect(consentModal).toBeVisible();
+    await expect(page.locator('text=Digital Medico-Legal Informed Consent')).toBeVisible();
+    await expect(page.locator('text=Clinical Procedure & Risk Disclosures:')).toBeVisible();
+
+    // 2. Edge Case: Empty signature validation error
+    const submitConsentBtn = page.locator('#submit-consent-btn');
+    await expect(submitConsentBtn).toBeVisible();
+    await submitConsentBtn.click();
+
+    // Check validation error shown
+    const errorMsg = page.locator('#consent-error');
+    await expect(errorMsg).toBeVisible();
+    await expect(errorMsg).toContainText('Please provide your touch or mouse signature');
+
+    // 3. Normal Case: Draw signature on HTML5 canvas
+    const canvas = page.locator('#consent-signature-canvas');
+    await expect(canvas).toBeVisible();
+    const box = await canvas.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + 20, box.y + 30);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 80, box.y + 60);
+      await page.mouse.move(box.x + 140, box.y + 30);
+      await page.mouse.move(box.x + 200, box.y + 70);
+      await page.mouse.up();
+    }
+
+    // 4. Edge Case: Test Clear Signature button
+    const clearBtn = page.locator('#clear-signature-btn');
+    await expect(clearBtn).toBeVisible();
+    await clearBtn.click();
+
+    // Redraw signature after clear
+    if (box) {
+      await page.mouse.move(box.x + 30, box.y + 40);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 120, box.y + 50);
+      await page.mouse.move(box.x + 180, box.y + 35);
+      await page.mouse.up();
+    }
+
+    // 5. Submit valid signed consent
+    await submitConsentBtn.click();
+
+    // Modal should close
+    await expect(consentModal).not.toBeVisible();
+
+    // 6. Verify Sealed Legal Consent badge is displayed
+    const sealedBadge = page.locator('#consent-sealed-badge');
+    await expect(sealedBadge).toBeVisible();
+    await expect(sealedBadge).toContainText('Medico-Legal Informed Consent Sealed');
+    await expect(sealedBadge).toContainText('NABH & NMC Signed');
+  });
+
 });
+

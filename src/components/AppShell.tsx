@@ -70,9 +70,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  // If on login or presentation page, render without standard sidebar
+  // If on login, presentation, or public patient plan page, render without standard sidebar
   const isPresentation = pathname?.includes('/presentation');
   const isLogin = pathname === '/login';
+  const isPublicPlan = pathname?.startsWith('/plan');
 
   const fetchCurrentUser = async () => {
     try {
@@ -128,7 +129,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     router.push('/login');
   };
 
-  if (isPresentation || isLogin) {
+  if (isPresentation || isLogin || isPublicPlan) {
     return (
       <SessionContext.Provider
         value={{

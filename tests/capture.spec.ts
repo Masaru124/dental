@@ -132,4 +132,56 @@ test.describe('DentOS Visual Capture Suite', () => {
     await page.waitForTimeout(800);
     await page.screenshot({ path: `${SCREENSHOTS_DIR}/12_login.png`, fullPage: true });
   });
+
+  test('Capture WhatsApp Chairside QR Modal', async ({ page }) => {
+    await page.goto('http://localhost:3000/patients/pat_aarav_101/presentation');
+    await page.waitForSelector('button:has-text("Send to Patient WhatsApp / QR")', { timeout: 15000 });
+    await page.locator('button:has-text("Send to Patient WhatsApp / QR")').click();
+    await page.waitForSelector('text=Chairside WhatsApp 3D Link', { timeout: 5000 });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${SCREENSHOTS_DIR}/13_whatsapp_chairside_qr_modal.png` });
+  });
+
+  test('Capture Patient Portal 3D Plan', async ({ page }) => {
+    await page.goto('http://localhost:3000/plan/pat_aarav_101');
+    await page.waitForSelector('text=Interactive 3D Oral Health Record', { timeout: 15000 });
+    await page.waitForTimeout(2000); // Three.js render
+    await page.screenshot({ path: `${SCREENSHOTS_DIR}/14_patient_portal_3d_plan.png`, fullPage: true });
+  });
+
+  test('Capture Patient UPI Booking Modal', async ({ page }) => {
+    await page.goto('http://localhost:3000/plan/pat_aarav_101');
+    await page.waitForSelector('button:has-text("Accept Plan & Book Slot")', { timeout: 15000 });
+    await page.locator('button:has-text("Accept Plan & Book Slot")').click();
+    await page.waitForSelector('text=Instant UPI Appointment Deposit', { timeout: 5000 });
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${SCREENSHOTS_DIR}/15_patient_upi_booking_modal.png` });
+  });
+
+  test('Capture Billing Milestones Ledger', async ({ page }) => {
+    await page.goto('http://localhost:3000/billing');
+    await page.waitForSelector('#billing-tab-milestones', { timeout: 15000 });
+    await page.locator('#billing-tab-milestones').click();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${SCREENSHOTS_DIR}/16_billing_milestones_ledger.png`, fullPage: true });
+  });
+
+  test('Capture Billing Chair Economics & Lab Split', async ({ page }) => {
+    await page.goto('http://localhost:3000/billing');
+    await page.waitForSelector('#billing-tab-chairs', { timeout: 15000 });
+    await page.locator('#billing-tab-chairs').click();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${SCREENSHOTS_DIR}/17_billing_chair_economics.png`, fullPage: true });
+  });
+
+  test('Capture Rapid Intraoral Charting Flow', async ({ page }) => {
+    await page.goto('http://localhost:3000/patients/pat_aarav_101');
+    await page.waitForSelector('button:has-text("2D FDI Chart")', { timeout: 15000 });
+    await page.locator('button:has-text("2D FDI Chart")').click();
+    await page.waitForSelector('#toggle-rapid-mode-btn', { timeout: 5000 });
+    await page.locator('#toggle-rapid-mode-btn').click();
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: `${SCREENSHOTS_DIR}/18_rapid_intraoral_charting.png` });
+  });
 });
+

@@ -7,7 +7,7 @@ import ToothChart, { ToothRecordItem, ToothCondition } from '@/components/ToothC
 import ToothEditorPanel from '@/components/ToothEditorPanel';
 import TreatmentPlanSection from '@/components/TreatmentPlanSection';
 import ImagingSection from '@/components/ImagingSection';
-import { User, Phone, Calendar, Clock, AlertTriangle, Plus, Eye, ArrowLeft, Box, Grid, ShieldCheck } from 'lucide-react';
+import { User, Phone, Calendar, Clock, AlertTriangle, Plus, Eye, ArrowLeft, Box, Grid, ShieldCheck, MessageSquare, Share2 } from 'lucide-react';
 import Link from 'next/link';
 
 // Dynamically import DentalArch3D with SSR disabled for maximum page load speed
@@ -51,6 +51,8 @@ export default function PatientDetailPage() {
   const [prefillTreatmentTooth, setPrefillTreatmentTooth] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [planRefreshKey, setPlanRefreshKey] = useState(0);
+  const [isAutoPlanLoading, setIsAutoPlanLoading] = useState(false);
 
   // View Mode: '3d' | '2d' | 'both'
   const [chartViewMode, setChartViewMode] = useState<'3d' | '2d' | 'both'>('3d');
@@ -123,6 +125,146 @@ export default function PatientDetailPage() {
       }
     } catch (err) {
       console.error('Save tooth record failed:', err);
+    }
+  };
+
+  const handleQuickConditionChange = async (toothNumber: string, condition: ToothCondition) => {
+    try {
+      setToothRecords((prev) => ({
+        ...prev,
+        [toothNumber]: {
+          tooth_number: toothNumber,
+          condition,
+          surfaces: ['O'],
+          notes: 'Rapid intraoral chart',
+        },
+      }));
+
+      const activeVisit = visits[0]?.id;
+      await fetch('/api/teeth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          visit_id: activeVisit,
+          tooth_number: toothNumber,
+          condition,
+          surfaces: ['O'],
+          notes: 'Rapid intraoral chart',
+        }),
+      });
+    } catch (err) {
+      console.error('Quick condition change failed:', err);
+    }
+  };
+
+  const handleBatchConditionChange = async (updates: Array<{ tooth_number: string; condition: ToothCondition }>) => {
+    try {
+      setToothRecords((prev) => {
+        const next = { ...prev };
+        updates.forEach((u) => {
+          next[u.tooth_number] = {
+            tooth_number: u.tooth_number,
+            condition: u.condition,
+            surfaces: ['O'],
+            notes: 'Macro batch preset',
+          };
+        });
+        return next;
+      });
+
+      const activeVisit = visits[0]?.id;
+      const res = await fetch('/api/teeth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          visit_id: activeVisit,
+          batch: updates.map((u) => ({
+            tooth_number: u.tooth_number,
+            condition: u.condition,
+            surfaces: ['O'],
+            notes: 'Macro batch preset',
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        showToast(`⚡ Macro applied: ${updates.length} teeth updated!`);
+      }
+    } catch (err) {
+      console.error('Batch condition change failed:', err);
+    }
+  };
+
+  const handleAutoGeneratePlan = async () => {
+    try {
+      setIsAutoPlanLoading(true);
+      const itemsToGenerate = [];
+
+      for (const [toothNum, record] of Object.entries(toothRecords)) {
+        if (record.condition === 'caries') {
+          itemsToGenerate.push({
+            tooth_refs: [toothNum],
+            procedure_name: `Class II Composite Restoration (#${toothNum})`,
+            priority: 'urgent',
+            quantity: 1,
+            unit_price: 1500,
+            notes: 'Decay excavation & bonded composite resin restoration',
+          });
+        } else if (record.condition === 'crown') {
+          itemsToGenerate.push({
+            tooth_refs: [toothNum],
+            procedure_name: `All-Ceramic Zirconia Crown (#${toothNum})`,
+            priority: 'soon',
+            quantity: 1,
+            unit_price: 8000,
+            lab_job_required: true,
+            notes: 'Full coverage anatomical crown restoration',
+          });
+        } else if (record.condition === 'missing') {
+          itemsToGenerate.push({
+            tooth_refs: [toothNum],
+            procedure_name: `Titanium Dental Implant & Abutment (#${toothNum})`,
+            priority: 'soon',
+            quantity: 1,
+            unit_price: 28000,
+            lab_job_required: true,
+            notes: 'Surgical osteotomy implant fixture & screw-retained crown',
+          });
+        }
+      }
+
+      if (itemsToGenerate.length === 0) {
+        showToast('No pathological defects found. Chart caries or crowns first to auto-generate!');
+        setIsAutoPlanLoading(false);
+        return;
+      }
+
+      const activeVisit = visits[0]?.id;
+      const res = await fetch('/api/treatment-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          visit_id: activeVisit,
+          items: itemsToGenerate,
+        }),
+      });
+
+      if (res.ok) {
+        const estTotal = itemsToGenerate.reduce((sum, i) => sum + i.unit_price, 0);
+        setPlanRefreshKey((prev) => prev + 1);
+        showToast(`⚡ Generated ${itemsToGenerate.length} treatment items (Est: ₹${estTotal.toLocaleString('en-IN')})!`);
+      } else {
+        const err = await res.json();
+        showToast(`Auto-plan error: ${err.error || 'Failed'}`);
+      }
+    } catch (err) {
+      console.error('Auto-generate plan failed:', err);
+      showToast('Failed to auto-generate treatment plan');
+    } finally {
+      setIsAutoPlanLoading(false);
     }
   };
 
@@ -278,11 +420,27 @@ export default function PatientDetailPage() {
 
           <Link
             href={`/patients/${patientId}/presentation`}
-            className="btn btn-primary btn-sm"
+            className="btn btn-secondary btn-sm"
             style={{ textDecoration: 'none' }}
           >
             <Eye size={14} />
             <span>Patient Case View</span>
+          </Link>
+
+          <Link
+            href={`/plan/${patientId}`}
+            target="_blank"
+            className="btn btn-primary btn-sm"
+            style={{
+              textDecoration: 'none',
+              background: 'linear-gradient(135deg, #15803d, #16a34a)',
+              borderColor: '#15803d',
+              color: '#ffffff',
+              boxShadow: '0 2px 6px rgba(22, 163, 74, 0.25)',
+            }}
+          >
+            <MessageSquare size={14} />
+            <span>WhatsApp 3D Plan</span>
           </Link>
         </div>
       </div>
@@ -411,6 +569,10 @@ export default function PatientDetailPage() {
             selectedTooth={selectedTooth}
             onSelectTooth={(num) => setSelectedTooth(num)}
             aiFindings={aiFindings}
+            onQuickConditionChange={handleQuickConditionChange}
+            onBatchConditionChange={handleBatchConditionChange}
+            onAutoGeneratePlan={handleAutoGeneratePlan}
+            isAutoPlanLoading={isAutoPlanLoading}
           />
         )}
       </div>
@@ -426,6 +588,7 @@ export default function PatientDetailPage() {
 
       {/* Treatment Plan Section with Live Totals */}
       <TreatmentPlanSection
+        key={`tp-section-${planRefreshKey}`}
         patientId={patientId}
         prefillTooth={prefillTreatmentTooth}
         onClearPrefillTooth={() => setPrefillTreatmentTooth(null)}
