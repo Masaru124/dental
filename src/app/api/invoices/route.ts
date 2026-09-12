@@ -89,7 +89,7 @@ export async function POST(req: Request) {
         visitId = 'vis_' + Date.now().toString(36);
         await sql`
           INSERT INTO visits (id, branch_id, patient_id, dentist_id, status, chief_complaint)
-          VALUES (${visitId}, ${branchId}, ${patient_id}, ${session.userId}, 'completed', 'Billing & Procedure')
+          VALUES (${visitId}, ${branchId}, ${patient_id}, ${session.id}, 'completed', 'Billing & Procedure')
         `;
       }
     }
