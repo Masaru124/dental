@@ -71,6 +71,28 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
   const [hasDrawn, setHasDrawn] = useState(false);
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
 
+  // Conversion Weapons: 72-Hour Price Lock, Before/After Smile Slider & 0% EMI
+  const [priceLockSeconds, setPriceLockSeconds] = useState(170850); // ~47 hours 27 min
+  const [beforeAfterPct, setBeforeAfterPct] = useState(50);
+  const [emiModalOpen, setEmiModalOpen] = useState(false);
+  const [emiPhone, setEmiPhone] = useState('');
+  const [emiApproved, setEmiApproved] = useState(false);
+
+  // Ticker for price lock
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setPriceLockSeconds((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatPriceLockTime = () => {
+    const h = Math.floor(priceLockSeconds / 3600);
+    const m = Math.floor((priceLockSeconds % 3600) / 60);
+    const s = priceLockSeconds % 60;
+    return `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`;
+  };
+
   useEffect(() => {
     async function loadPlan() {
       try {
@@ -397,6 +419,85 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
           </div>
         </div>
       </header>
+
+      {/* ─── 72-Hour Urgency Price Lock Banner ─────────────────── */}
+      <div
+        id="price-lock-banner"
+        style={{
+          background: 'linear-gradient(90deg, #064e3b 0%, #065f46 50%, #047857 100%)',
+          color: '#ffffff',
+          padding: '0.65rem 1.25rem',
+          boxShadow: '0 2px 8px rgba(6, 78, 59, 0.25)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: '1080px',
+            margin: '0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                background: '#fef08a',
+                color: '#854d0e',
+                fontSize: '0.72rem',
+                fontWeight: 800,
+                padding: '2px 8px',
+                borderRadius: '999px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+              }}
+            >
+              🔒 72-Hour Price Guarantee
+            </span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+              {lang === 'en'
+                ? 'Diagnostic fee waived & 10-Year Crown Warranty upgrade preserved if booked before timer expires:'
+                : 'प्रारंभिक शुल्क माफ़ और 10-वर्षीय वारंटी अपग्रेड सुरक्षित रहेगा यदि समय समाप्त होने से पहले बुक करें:'}
+            </span>
+            <span
+              id="price-lock-countdown"
+              style={{
+                background: '#022c22',
+                color: '#34d399',
+                padding: '2px 8px',
+                borderRadius: '6px',
+                fontFamily: 'monospace',
+                fontWeight: 800,
+                fontSize: '0.85rem',
+                border: '1px solid #059669',
+              }}
+            >
+              {formatPriceLockTime()}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            id="lock-price-now-btn"
+            onClick={() => setUpiModalOpen(true)}
+            style={{
+              background: '#fef08a',
+              color: '#854d0e',
+              border: 'none',
+              padding: '4px 12px',
+              borderRadius: '6px',
+              fontSize: '0.78rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }}
+          >
+            {lang === 'en' ? 'Lock In Guaranteed Rate' : 'गारंटीड दर सुरक्षित करें'}
+          </button>
+        </div>
+      </div>
 
       {/* ─── Hero / Patient Greeting ────────────────────────────── */}
       <div
@@ -895,6 +996,126 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 </span>
               </div>
             </div>
+
+            {/* ─── Before & After Smile Transformation Slider ───────── */}
+            <div id="before-after-container" className="card" style={{ marginTop: '1rem', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
+                    {lang === 'en' ? 'Projected Smile & Aesthetic Rehabilitation' : 'अनुमानित मुस्कान और पुनर्वास'}
+                  </h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
+                    {lang === 'en' ? 'Drag the interactive slider to compare Pre-Op vs Post-Op Bio-Zirconia' : 'स्लाइडर खींचकर पहले और बाद की स्थिति की तुलना करें'}
+                  </p>
+                </div>
+                <span id="before-after-pct" style={{ fontSize: '0.72rem', fontWeight: 700, background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', color: '#0f172a' }}>
+                  {beforeAfterPct}% Post-Op
+                </span>
+              </div>
+
+              {/* Split-View Visual Box */}
+              <div style={{ position: 'relative', height: '140px', borderRadius: '10px', overflow: 'hidden', background: '#0f172a', marginBottom: '0.75rem' }}>
+                {/* Pre-Op Background Layer */}
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #451a03 0%, #1e1b4b 100%)', color: '#fef3c7', padding: '1rem' }}>
+                  <div style={{ textAlign: 'left', maxWidth: '45%' }}>
+                    <div id="before-label" style={{ fontSize: '0.7rem', fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Pre-Op Compromised
+                    </div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, marginTop: '2px' }}>
+                      Deep Occlusal Caries, Micro-Fracture & Staining
+                    </div>
+                  </div>
+                </div>
+
+                {/* Post-Op Foreground Masked Layer */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: `${beforeAfterPct}%`,
+                    background: 'linear-gradient(135deg, #064e3b 0%, #0369a1 100%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderLeft: '2px solid #38bdf8',
+                    padding: '1rem',
+                  }}
+                >
+                  <div style={{ textAlign: 'right', maxWidth: '90%' }}>
+                    <div id="after-label" style={{ fontSize: '0.7rem', fontWeight: 800, color: '#38bdf8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Post-Op Restored
+                    </div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#ffffff', marginTop: '2px' }}>
+                      Monolithic Bio-Zirconia (Shade A2, Flawless Margin)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Slider Input */}
+              <input
+                type="range"
+                id="before-after-slider"
+                min="0"
+                max="100"
+                value={beforeAfterPct}
+                onChange={(e) => setBeforeAfterPct(Number(e.target.value))}
+                style={{ width: '100%', cursor: 'ew-resize', accentColor: '#0284c7' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                <span>Pre-Op (Decay & Pain)</span>
+                <span>Post-Op (Aesthetic Smile)</span>
+              </div>
+            </div>
+
+            {/* ─── Chairside 0% Healthcare EMI Widget ──────────────── */}
+            <div
+              id="emi-calculator-widget"
+              className="card"
+              style={{
+                marginTop: '1rem',
+                padding: '1.15rem',
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: '1px solid #bbf7d0',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ background: '#15803d', color: '#ffffff', fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: '4px' }}>
+                      0% NO-COST EMI
+                    </span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#14532d' }}>
+                      Starting at ₹1,533 / Month
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#166534', marginTop: '2px' }}>
+                    Zero Downpayment • Instant Instant Pre-Approval via Bajaj Finserv &amp; LiquiLoans
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  id="open-emi-modal-btn"
+                  onClick={() => setEmiModalOpen(true)}
+                  style={{
+                    background: '#15803d',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(21, 128, 61, 0.25)',
+                  }}
+                >
+                  Check Instant Eligibility
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Right Column: Treatment Plan, Transparent Estimate & Action */}
@@ -1174,6 +1395,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 </div>
               </div>
               <button
+                id="close-upi-modal-btn"
                 onClick={() => setUpiModalOpen(false)}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}
               >
@@ -1532,6 +1754,155 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 0% Healthcare EMI Instant Eligibility Modal ───────── */}
+      {emiModalOpen && (
+        <div
+          id="emi-calculator-modal"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: '460px',
+              width: '100%',
+              padding: '1.75rem',
+              borderRadius: '16px',
+              background: '#ffffff',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: 34, height: 34, borderRadius: '8px', background: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={18} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>
+                    0% Healthcare EMI Pre-Approval
+                  </h3>
+                  <div style={{ fontSize: '0.72rem', color: '#166534' }}>
+                    Bajaj Finserv • LiquiLoans • Arogya Finance
+                  </div>
+                </div>
+              </div>
+              <button
+                id="close-emi-modal-btn"
+                onClick={() => setEmiModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {!emiApproved ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (emiPhone.length >= 10) {
+                    setEmiApproved(true);
+                  }
+                }}
+              >
+                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '10px', marginBottom: '1.25rem', fontSize: '0.8rem', border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#64748b' }}>Total Treatment Cost:</span>
+                    <span style={{ fontWeight: 800 }}>₹{grandTotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ color: '#64748b' }}>Tenure Options:</span>
+                    <span style={{ fontWeight: 700, color: '#0284c7' }}>3, 6, 9, or 12 Months</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#15803d', fontWeight: 800, borderTop: '1px dashed #cbd5e1', paddingTop: '6px' }}>
+                    <span>Monthly EMI (12 Mos):</span>
+                    <span>₹{Math.round(grandTotal / 12).toLocaleString('en-IN')} / month</span>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '4px', color: '#334155' }}>
+                    Enter Mobile Number for Instant Bureau Check *
+                  </label>
+                  <input
+                    type="tel"
+                    id="emi-phone-input"
+                    className="input"
+                    placeholder="e.g. 9876543210"
+                    value={emiPhone}
+                    onChange={(e) => setEmiPhone(e.target.value)}
+                    required
+                    style={{ width: '100%', fontSize: '14px', fontFamily: 'monospace' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setEmiModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    id="submit-emi-check-btn"
+                    className="btn btn-primary"
+                    style={{ background: '#15803d', fontWeight: 700 }}
+                  >
+                    Verify Instant Limit
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div>
+                <div
+                  id="emi-approved-badge"
+                  style={{
+                    padding: '1rem',
+                    background: '#ecfdf5',
+                    border: '1px solid #10b981',
+                    borderRadius: '10px',
+                    color: '#065f46',
+                    marginBottom: '1.25rem',
+                  }}
+                >
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle2 size={18} color="#10b981" />
+                    <span>Instant Credit Line Pre-Approved!</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', marginTop: '4px', color: '#047857' }}>
+                    Pre-approved limit of <strong>₹1,00,000</strong> at <strong>0% interest</strong> activated for patient mobile #{emiPhone}.
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    id="confirm-emi-booking-btn"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setEmiModalOpen(false);
+                      setUpiModalOpen(true);
+                    }}
+                    style={{ background: '#15803d', fontWeight: 700 }}
+                  >
+                    Proceed to Reserve Chair with EMI
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

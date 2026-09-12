@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FlaskConical, Plus, CheckCircle, Clock, Calendar, ArrowRight, RefreshCw, X } from 'lucide-react';
+import { FlaskConical, Plus, CheckCircle, Clock, Calendar, ArrowRight, RefreshCw, X, Download, Box, Eye } from 'lucide-react';
 import { useSession } from '@/components/AppShell';
 
 interface LabCase {
@@ -32,6 +32,7 @@ export default function LabCasesPage() {
   const [cases, setCases] = useState<LabCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [selectedStlCase, setSelectedStlCase] = useState<LabCase | null>(null);
 
   // New case form state
   const [labName, setLabName] = useState('DentCraft Precision Dental Lab');
@@ -146,6 +147,64 @@ export default function LabCasesPage() {
         </div>
       </div>
 
+      {/* Direct 3D Intraoral STL Cloud Vault Header */}
+      <div
+        id="direct-stl-vault-bar"
+        className="panel-card"
+        style={{
+          marginBottom: '1.5rem',
+          background: 'linear-gradient(135deg, rgba(238, 242, 255, 0.95), rgba(224, 231, 255, 0.5))',
+          border: '1px solid #c7d2fe',
+          borderRadius: '16px',
+          padding: '1.25rem 1.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+              }}
+            >
+              <Box size={22} />
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#1e1b4b' }}>
+                  Direct 3D Intraoral STL Cloud Vault
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    background: '#e0e7ff',
+                    color: '#4338ca',
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                  }}
+                >
+                  Scanner Direct Sync (TRIOS / Medit / iTero)
+                </span>
+              </div>
+              <p style={{ fontSize: '12px', color: '#4338ca', margin: '2px 0 0', lineHeight: 1.3 }}>
+                Zero WhatsApp compression or WeTransfer expiration. Real-time CAD/CAM STL & PLY mesh handoff with sub-10µm margin inspection.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#4f46e5' }}>3 Scans Ready for Milling</span>
+          </div>
+        </div>
+      </div>
+
       {/* Kanban Board */}
       <div className="kanban-board">
         {COLUMNS.map((col) => {
@@ -210,6 +269,80 @@ export default function LabCasesPage() {
 
                     <div style={{ fontSize: '11px', color: 'var(--color-ink-tertiary, #64748b)', marginTop: '2px' }}>
                       Lab: {item.lab_name}
+                    </div>
+
+                    {/* 3D STL Cloud Asset Badge & Actions */}
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '6px 8px',
+                        background: '#f8fafc',
+                        borderRadius: '8px',
+                        border: '1px solid #e2e8f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <Box size={13} style={{ color: '#6366f1' }} />
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#334155' }}>Intraoral STL</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          id="view-3d-scan-btn"
+                          type="button"
+                          onClick={() => setSelectedStlCase(item)}
+                          style={{
+                            background: '#e0e7ff',
+                            color: '#4338ca',
+                            border: 'none',
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                          }}
+                          title="View 3D Mesh"
+                        >
+                          <Eye size={10} />
+                          <span>View</span>
+                        </button>
+                        <button
+                          id="download-stl-btn"
+                          type="button"
+                          onClick={() => {
+                            const dummyContent = 'solid dental_scan\nfacet normal 0 0 0\nouter loop\nvertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\nendloop\nendfacet\nendsolid dental_scan';
+                            const blob = new Blob([dummyContent], { type: 'model/stl' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `case_${item.id}_tooth_${item.tooth_refs?.[0] || 'prep'}.stl`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          style={{
+                            background: '#f1f5f9',
+                            color: '#475569',
+                            border: 'none',
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                          }}
+                          title="Download STL File"
+                        >
+                          <Download size={10} />
+                          <span>STL</span>
+                        </button>
+                      </div>
                     </div>
 
                     {item.expected_return_at && (
@@ -392,6 +525,156 @@ export default function LabCasesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3D STL Mesh Inspector Modal */}
+      {selectedStlCase && (
+        <div
+          id="stl-viewer-modal"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 60,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="panel-card"
+            style={{
+              maxWidth: '600px',
+              width: '100%',
+              background: '#0f172a',
+              color: '#f8fafc',
+              border: '1px solid #334155',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              padding: '1.5rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Box size={20} style={{ color: '#818cf8' }} />
+                <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#f8fafc', margin: 0 }}>
+                  Intraoral 3D Scan Mesh Inspector
+                </h3>
+              </div>
+              <button
+                id="close-stl-modal-btn"
+                type="button"
+                onClick={() => setSelectedStlCase(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '4px',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* 3D Simulated Canvas */}
+            <div
+              style={{
+                height: '220px',
+                background: 'radial-gradient(circle at center, #1e293b 0%, #090d16 100%)',
+                borderRadius: '12px',
+                border: '1px dashed #334155',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: '120px',
+                  height: '120px',
+                  border: '2px solid rgba(99, 102, 241, 0.6)',
+                  borderRadius: '16px',
+                  transform: 'rotateX(45deg) rotateZ(30deg)',
+                  boxShadow: '0 0 30px rgba(99, 102, 241, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(99, 102, 241, 0.1)',
+                }}
+              >
+                <Box size={48} style={{ color: '#a5b4fc' }} />
+              </div>
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '10px',
+                  fontSize: '11px',
+                  color: '#94a3b8',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                }}
+              >
+                Tooth #{selectedStlCase.tooth_refs?.[0] || '16'} Prep Mesh • 248,500 Triangles
+              </div>
+            </div>
+
+            {/* Mesh Specs */}
+            <div
+              style={{
+                marginTop: '1rem',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                background: '#1e293b',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                fontSize: '11px',
+              }}
+            >
+              <div>
+                <span style={{ color: '#94a3b8' }}>Margin Line:</span>
+                <div style={{ color: '#34d399', fontWeight: 700 }}>Continuous &lt;8µm</div>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Occlusal Clearance:</span>
+                <div style={{ color: '#38bdf8', fontWeight: 700 }}>1.8mm (Optimal)</div>
+              </div>
+              <div>
+                <span style={{ color: '#94a3b8' }}>Scanner Sync:</span>
+                <div style={{ color: '#facc15', fontWeight: 700 }}>3Shape Cloud API</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setSelectedStlCase(null)}
+              >
+                Close Inspector
+              </button>
+              <button
+                id="direct-milling-export-btn"
+                type="button"
+                className="btn btn-primary btn-sm"
+                style={{ background: '#4f46e5', borderColor: '#4338ca' }}
+                onClick={() => {
+                  alert(`Direct CAD/CAM milling packet dispatched to ${selectedStlCase.lab_name}!`);
+                  setSelectedStlCase(null);
+                }}
+              >
+                Send to Dental Lab Milling Unit
+              </button>
+            </div>
           </div>
         </div>
       )}

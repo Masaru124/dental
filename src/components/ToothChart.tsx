@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Zap, Clock, RotateCcw, Wand2, Sparkles, ChevronRight, ChevronLeft, Check, CheckCircle2 } from 'lucide-react';
+import { Zap, Clock, RotateCcw, Wand2, Sparkles, ChevronRight, ChevronLeft, Check, CheckCircle2, Mic, MicOff, Volume2, Baby, UserCheck } from 'lucide-react';
 
 export type ToothCondition = 'healthy' | 'caries' | 'filling' | 'crown' | 'missing';
 
@@ -50,6 +50,22 @@ export const ALL_TEETH_ORDER = [
   ...LOWER_TEETH
 ];
 
+// FDI 20 pediatric (deciduous/milk) teeth numbering
+export const PEDIATRIC_UPPER_TEETH = [
+  '55', '54', '53', '52', '51',
+  '61', '62', '63', '64', '65'
+];
+
+export const PEDIATRIC_LOWER_TEETH = [
+  '85', '84', '83', '82', '81',
+  '71', '72', '73', '74', '75'
+];
+
+export const ALL_PEDIATRIC_TEETH_ORDER = [
+  ...PEDIATRIC_UPPER_TEETH,
+  ...PEDIATRIC_LOWER_TEETH
+];
+
 const CONDITION_COLORS: Record<ToothCondition, { fill: string; stroke: string; label: string }> = {
   healthy: { fill: 'var(--color-healthy-bg, #ecfdf5)', stroke: 'var(--color-healthy, #10b981)', label: 'Healthy' },
   caries: { fill: 'var(--color-caries-bg, #fffbeb)', stroke: 'var(--color-caries, #f59e0b)', label: 'Caries' },
@@ -75,6 +91,17 @@ export default function ToothChart({
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [internalActiveTooth, setInternalActiveTooth] = useState<string>('18');
 
+  // Dentition mode: adult vs pediatric deciduous
+  const [dentitionMode, setDentitionMode] = useState<'adult' | 'pediatric'>('adult');
+
+  // Hands-free Voice Assistant states
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState<string>('');
+  const [voiceFeedback, setVoiceFeedback] = useState<string>('');
+
+  // Active tooth list based on dentition mode
+  const activeTeethOrder = dentitionMode === 'adult' ? ALL_TEETH_ORDER : ALL_PEDIATRIC_TEETH_ORDER;
+
   // Timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -92,7 +119,7 @@ export default function ToothChart({
     if (!rapidMode) {
       setRapidMode(true);
       setIsTimerRunning(true);
-      setInternalActiveTooth(selectedTooth || '18');
+      setInternalActiveTooth(selectedTooth || (dentitionMode === 'adult' ? '18' : '55'));
       if (selectedTooth) {
         onSelectTooth(''); // close slide drawer so it doesn't block charting
       }
@@ -108,22 +135,22 @@ export default function ToothChart({
 
   // Move tooth in sequence
   const advanceTooth = useCallback((direction: 1 | -1) => {
-    const currentTooth = rapidMode ? internalActiveTooth : (selectedTooth || '18');
-    const currentIndex = currentTooth ? ALL_TEETH_ORDER.indexOf(currentTooth) : -1;
+    const currentTooth = rapidMode ? internalActiveTooth : (selectedTooth || (dentitionMode === 'adult' ? '18' : '55'));
+    const currentIndex = currentTooth ? activeTeethOrder.indexOf(currentTooth) : -1;
     let nextIndex = currentIndex + direction;
-    if (nextIndex >= ALL_TEETH_ORDER.length) nextIndex = 0;
-    if (nextIndex < 0) nextIndex = ALL_TEETH_ORDER.length - 1;
-    const nextTooth = ALL_TEETH_ORDER[nextIndex];
+    if (nextIndex >= activeTeethOrder.length) nextIndex = 0;
+    if (nextIndex < 0) nextIndex = activeTeethOrder.length - 1;
+    const nextTooth = activeTeethOrder[nextIndex];
     if (rapidMode) {
       setInternalActiveTooth(nextTooth);
     } else {
       onSelectTooth(nextTooth);
     }
-  }, [rapidMode, internalActiveTooth, selectedTooth, onSelectTooth]);
+  }, [rapidMode, internalActiveTooth, selectedTooth, onSelectTooth, activeTeethOrder, dentitionMode]);
 
   // Apply quick condition and automatically advance
   const applyQuickCondition = useCallback((condition: ToothCondition) => {
-    const targetTooth = rapidMode ? internalActiveTooth : (selectedTooth || '18');
+    const targetTooth = rapidMode ? internalActiveTooth : (selectedTooth || (dentitionMode === 'adult' ? '18' : '55'));
     if (onQuickConditionChange) {
       onQuickConditionChange(targetTooth, condition);
     }
@@ -131,7 +158,7 @@ export default function ToothChart({
       // Auto advance to next tooth for 45s rapid pace!
       advanceTooth(1);
     }
-  }, [rapidMode, internalActiveTooth, selectedTooth, onQuickConditionChange, advanceTooth]);
+  }, [rapidMode, internalActiveTooth, selectedTooth, onQuickConditionChange, advanceTooth, dentitionMode]);
 
   // Keyboard shortcut listener
   useEffect(() => {
@@ -220,6 +247,105 @@ export default function ToothChart({
       onBatchConditionChange(teeth.map((t) => ({ tooth_number: t, condition: 'filling' })));
     } else if (preset === 'full_healthy') {
       onBatchConditionChange(ALL_TEETH_ORDER.map((t) => ({ tooth_number: t, condition: 'healthy' })));
+    }
+  };
+
+  // Voice recognition and clinical NLP command parsing
+  const handleVoiceCommand = useCallback((cmd: string) => {
+    const clean = cmd.toLowerCase().trim();
+    setVoiceTranscript(cmd);
+
+    // Check for dentition toggle
+    if (clean.includes('pediatric') || clean.includes('milk') || clean.includes('child')) {
+      setDentitionMode('pediatric');
+      setVoiceFeedback('Switched to Pediatric (Milk Teeth 51-85) Arch');
+      return;
+    }
+    if (clean.includes('adult') || clean.includes('permanent')) {
+      setDentitionMode('adult');
+      setVoiceFeedback('Switched to Adult Permanent (11-48) Arch');
+      return;
+    }
+
+    // Check for macros
+    if (clean.includes('upper molar')) {
+      applyMacro('upper_molars');
+      setVoiceFeedback('Macro: Upper Molars Caries Applied');
+      return;
+    }
+    if (clean.includes('lower molar')) {
+      applyMacro('lower_molars');
+      setVoiceFeedback('Macro: Lower Molars RCT Applied');
+      return;
+    }
+    if (clean.includes('all healthy') || clean.includes('scaled')) {
+      applyMacro('full_healthy');
+      setVoiceFeedback('Macro: Full Mouth Scaled Applied');
+      return;
+    }
+
+    // Extract tooth number (e.g. 11-48, 51-85)
+    const match = clean.match(/\b([1-8][1-8])\b/);
+    const toothNum = match ? match[1] : (rapidMode ? internalActiveTooth : selectedTooth);
+
+    if (toothNum) {
+      if (clean.includes('caries') || clean.includes('cavity') || clean.includes('decay')) {
+        if (onQuickConditionChange) onQuickConditionChange(toothNum, 'caries');
+        setVoiceFeedback(`Tooth #${toothNum} marked as CARIES`);
+      } else if (clean.includes('rct') || clean.includes('crown') || clean.includes('root canal')) {
+        if (onQuickConditionChange) onQuickConditionChange(toothNum, 'crown');
+        setVoiceFeedback(`Tooth #${toothNum} marked as RCT/CROWN`);
+      } else if (clean.includes('fill') || clean.includes('restoration') || clean.includes('composite')) {
+        if (onQuickConditionChange) onQuickConditionChange(toothNum, 'filling');
+        setVoiceFeedback(`Tooth #${toothNum} marked as FILLING`);
+      } else if (clean.includes('healthy') || clean.includes('normal')) {
+        if (onQuickConditionChange) onQuickConditionChange(toothNum, 'healthy');
+        setVoiceFeedback(`Tooth #${toothNum} marked as HEALTHY`);
+      } else if (clean.includes('missing') || clean.includes('extracted')) {
+        if (onQuickConditionChange) onQuickConditionChange(toothNum, 'missing');
+        setVoiceFeedback(`Tooth #${toothNum} marked as MISSING`);
+      } else {
+        setVoiceFeedback(`Selected Tooth #${toothNum}`);
+        if (rapidMode) setInternalActiveTooth(toothNum);
+        else onSelectTooth(toothNum);
+      }
+    } else {
+      setVoiceFeedback(`Command not recognized: "${cmd}"`);
+    }
+  }, [rapidMode, internalActiveTooth, selectedTooth, onQuickConditionChange, onSelectTooth]);
+
+  const toggleVoiceRecognition = () => {
+    if (!isVoiceListening) {
+      setIsVoiceListening(true);
+      setVoiceFeedback('Listening for Dental Commands... (e.g. "Chart 16 Caries")');
+
+      // Check if Web Speech API is supported
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        try {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = false;
+          recognition.interimResults = false;
+          recognition.lang = 'en-IN';
+          recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            handleVoiceCommand(transcript);
+            setIsVoiceListening(false);
+          };
+          recognition.onerror = () => {
+            setIsVoiceListening(false);
+          };
+          recognition.onend = () => {
+            setIsVoiceListening(false);
+          };
+          recognition.start();
+        } catch (e) {
+          console.error('Speech recognition error:', e);
+        }
+      }
+    } else {
+      setIsVoiceListening(false);
+      setVoiceFeedback('Voice recognition paused');
     }
   };
 
@@ -433,6 +559,79 @@ export default function ToothChart({
 
         {/* Rapid Mode Controls & Timer */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Dentition Arch Switcher: Adult vs Pediatric Deciduous */}
+          <div
+            id="dentition-mode-toggle"
+            style={{
+              display: 'flex',
+              background: '#f1f5f9',
+              borderRadius: '6px',
+              padding: '2px',
+              border: '1px solid #cbd5e1',
+            }}
+          >
+            <button
+              id="dentition-adult-btn"
+              onClick={() => setDentitionMode('adult')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: dentitionMode === 'adult' ? '#0284c7' : 'transparent',
+                color: dentitionMode === 'adult' ? '#ffffff' : '#64748b',
+              }}
+            >
+              <UserCheck size={12} />
+              <span>Adult (11-48)</span>
+            </button>
+            <button
+              id="dentition-pediatric-btn"
+              onClick={() => setDentitionMode('pediatric')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+                background: dentitionMode === 'pediatric' ? '#ec4899' : 'transparent',
+                color: dentitionMode === 'pediatric' ? '#ffffff' : '#64748b',
+              }}
+            >
+              <Baby size={12} />
+              <span>Pediatric Milk (51-85)</span>
+            </button>
+          </div>
+
+          {/* Hands-Free Voice Assistant Bar Button */}
+          <button
+            id="toggle-voice-btn"
+            onClick={toggleVoiceRecognition}
+            className="btn btn-sm"
+            style={{
+              background: isVoiceListening ? '#ef4444' : '#f8fafc',
+              color: isVoiceListening ? '#ffffff' : '#0f172a',
+              border: isVoiceListening ? '1px solid #b91c1c' : '1px solid #cbd5e1',
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: isVoiceListening ? '0 0 0 3px rgba(239, 68, 68, 0.3)' : 'none',
+            }}
+          >
+            {isVoiceListening ? <Mic size={14} className="animate-pulse" /> : <MicOff size={14} color="#64748b" />}
+            <span id="voice-status-pill">{isVoiceListening ? 'Listening Voice...' : '🎙️ Voice Dictation'}</span>
+          </button>
+
           {/* Rapid Mode Toggle Button */}
           <button
             id="toggle-rapid-mode-btn"
@@ -689,6 +888,74 @@ export default function ToothChart({
             </button>
           </div>
         )}
+
+        {/* Hands-Free Voice Assistant Interactive Bar */}
+        <div
+          id="voice-assistant-bar"
+          style={{
+            background: isVoiceListening ? 'linear-gradient(135deg, #450a0a 0%, #1e1b4b 100%)' : '#f1f5f9',
+            border: isVoiceListening ? '1px solid #ef4444' : '1px solid #e2e8f0',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginTop: '4px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: isVoiceListening ? '#fca5a5' : '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Volume2 size={13} color={isVoiceListening ? '#ef4444' : '#64748b'} />
+              <span>Voice Bar:</span>
+            </span>
+            <span id="voice-transcript" style={{ fontSize: '11px', fontFamily: 'monospace', color: isVoiceListening ? '#ffffff' : '#0f172a', fontWeight: 600 }}>
+              {voiceTranscript ? `"${voiceTranscript}"` : isVoiceListening ? 'Listening for dictation...' : 'Ready for clinical call-outs'}
+            </span>
+            {voiceFeedback && (
+              <span id="voice-feedback-badge" style={{ fontSize: '10px', background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                {voiceFeedback}
+              </span>
+            )}
+          </div>
+
+          {/* Quick Voice Trigger Simulation Chips */}
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <button
+              id="voice-chip-16-caries"
+              onClick={() => handleVoiceCommand('Chart 16 Caries')}
+              title="Voice simulation: Chart 16 Caries"
+              style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}
+            >
+              🗣️ &quot;16 Caries&quot;
+            </button>
+            <button
+              id="voice-chip-36-rct"
+              onClick={() => handleVoiceCommand('Chart 36 RCT')}
+              title="Voice simulation: Chart 36 RCT"
+              style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}
+            >
+              🗣️ &quot;36 RCT&quot;
+            </button>
+            <button
+              id="voice-chip-macro-upper"
+              onClick={() => handleVoiceCommand('Macro Upper Molars')}
+              title="Voice simulation: Macro Upper Molars"
+              style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}
+            >
+              🗣️ &quot;Upper Molars&quot;
+            </button>
+            <button
+              id="voice-chip-pediatric"
+              onClick={() => handleVoiceCommand('Switch to Pediatric')}
+              title="Voice simulation: Switch to Pediatric"
+              style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}
+            >
+              🗣️ &quot;Pediatric Arch&quot;
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Dental Arch SVG Layout Container */}
@@ -706,19 +973,38 @@ export default function ToothChart({
           {/* Maxillary Arch (Upper Jaw) */}
           <div>
             <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 700, color: 'var(--color-ink-tertiary, #94a3b8)', letterSpacing: '0.05em', marginBottom: '4px' }}>
-              MAXILLARY ARCH (UPPER JAW)
+              {dentitionMode === 'adult'
+                ? 'Permanent Adult Dentition (32 Teeth • FDI 11-48)'
+                : 'Pediatric Primary Dentition (20 Teeth • Milk Dentition 51-85)'}
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
-              {/* Upper Right Quadrant 1 */}
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {UPPER_TEETH.slice(0, 8).map((t) => renderTooth(t, true))}
-              </div>
-              {/* Midline Divider */}
-              <div style={{ width: '2px', height: '56px', background: 'var(--color-ink-muted, #cbd5e1)', margin: '0 6px' }} />
-              {/* Upper Left Quadrant 2 */}
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {UPPER_TEETH.slice(8, 16).map((t) => renderTooth(t, true))}
-              </div>
+              {dentitionMode === 'adult' ? (
+                <>
+                  {/* Upper Right Quadrant 1 */}
+                  <div style={{ display: 'flex', gap: '2px' }}>
+                    {UPPER_TEETH.slice(0, 8).map((t) => renderTooth(t, true))}
+                  </div>
+                  {/* Midline Divider */}
+                  <div style={{ width: '2px', height: '56px', background: 'var(--color-ink-muted, #cbd5e1)', margin: '0 6px' }} />
+                  {/* Upper Left Quadrant 2 */}
+                  <div style={{ display: 'flex', gap: '2px' }}>
+                    {UPPER_TEETH.slice(8, 16).map((t) => renderTooth(t, true))}
+                  </div>
+                </>
+              ) : (
+                <div id="pediatric-upper-arch" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {/* Deciduous Upper Right Quadrant 5 */}
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {PEDIATRIC_UPPER_TEETH.slice(0, 5).map((t) => renderTooth(t, true))}
+                  </div>
+                  {/* Midline Divider */}
+                  <div style={{ width: '2px', height: '56px', background: '#ec4899', margin: '0 8px' }} />
+                  {/* Deciduous Upper Left Quadrant 6 */}
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {PEDIATRIC_UPPER_TEETH.slice(5, 10).map((t) => renderTooth(t, true))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -737,26 +1023,45 @@ export default function ToothChart({
                 fontWeight: 700,
               }}
             >
-              OCCLUSAL PLANE
+              OCCLUSAL PLANE ({dentitionMode === 'adult' ? '32 ADULT PERMANENT' : '20 PRIMARY DECIDUOUS'})
             </span>
           </div>
 
           {/* Mandibular Arch (Lower Jaw) */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
-              {/* Lower Right Quadrant 4 */}
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {LOWER_TEETH.slice(0, 8).map((t) => renderTooth(t, false))}
-              </div>
-              {/* Midline Divider */}
-              <div style={{ width: '2px', height: '56px', background: 'var(--color-ink-muted, #cbd5e1)', margin: '0 6px' }} />
-              {/* Lower Left Quadrant 3 */}
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {LOWER_TEETH.slice(8, 16).map((t) => renderTooth(t, false))}
-              </div>
+              {dentitionMode === 'adult' ? (
+                <>
+                  {/* Lower Right Quadrant 4 */}
+                  <div style={{ display: 'flex', gap: '2px' }}>
+                    {LOWER_TEETH.slice(0, 8).map((t) => renderTooth(t, false))}
+                  </div>
+                  {/* Midline Divider */}
+                  <div style={{ width: '2px', height: '56px', background: 'var(--color-ink-muted, #cbd5e1)', margin: '0 6px' }} />
+                  {/* Lower Left Quadrant 3 */}
+                  <div style={{ display: 'flex', gap: '2px' }}>
+                    {LOWER_TEETH.slice(8, 16).map((t) => renderTooth(t, false))}
+                  </div>
+                </>
+              ) : (
+                <div id="pediatric-lower-arch" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {/* Deciduous Lower Right Quadrant 8 */}
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {PEDIATRIC_LOWER_TEETH.slice(0, 5).map((t) => renderTooth(t, false))}
+                  </div>
+                  {/* Midline Divider */}
+                  <div style={{ width: '2px', height: '56px', background: '#ec4899', margin: '0 8px' }} />
+                  {/* Deciduous Lower Left Quadrant 7 */}
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {PEDIATRIC_LOWER_TEETH.slice(5, 10).map((t) => renderTooth(t, false))}
+                  </div>
+                </div>
+              )}
             </div>
             <div style={{ textAlign: 'center', fontSize: '11px', fontWeight: 700, color: 'var(--color-ink-tertiary, #94a3b8)', letterSpacing: '0.05em', marginTop: '4px' }}>
-              MANDIBULAR ARCH (LOWER JAW)
+              {dentitionMode === 'adult'
+                ? 'MANDIBULAR ARCH (LOWER JAW - PERMANENT 48-38)'
+                : 'MANDIBULAR ARCH (DECIDUOUS MILK TEETH 85-75)'}
             </div>
           </div>
         </div>

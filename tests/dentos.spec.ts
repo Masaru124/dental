@@ -303,7 +303,7 @@ test.describe('DentOS v2 Comprehensive End-to-End Test Suite', () => {
     await expect(page.locator('text=Generated')).toBeVisible();
 
     // Verify Treatment Plan Section displays planned procedures
-    await expect(page.locator('text=Treatment Plan')).toBeVisible();
+    await expect(page.locator('h3:has-text("Clinical Treatment Plan")')).toBeVisible();
     await expect(page.locator('text=Class II Composite Restoration').first()).toBeVisible();
   });
 
@@ -475,6 +475,254 @@ test.describe('DentOS v2 Comprehensive End-to-End Test Suite', () => {
     await expect(sealedBadge).toBeVisible();
     await expect(sealedBadge).toContainText('Medico-Legal Informed Consent Sealed');
     await expect(sealedBadge).toContainText('NABH & NMC Signed');
+  });
+
+  test('20: Voice-Activated Hands-Free FDI Charting & Pediatric Deciduous Arch Toggle (Normal + Edge Cases)', async ({ page }) => {
+    await page.goto('http://localhost:3000/patients/pat_aarav_101');
+    await expect(page.locator('h1')).toContainText('Aarav Patel', { timeout: 15000 });
+
+    // Switch to 2D view
+    await page.locator('button:has-text("2D FDI Chart")').click();
+
+    // 1. Test Pediatric Deciduous Toggle (Edge Case: Primary milk teeth arch 51-85)
+    const pedToggle = page.locator('#dentition-mode-toggle');
+    await expect(pedToggle).toBeVisible();
+
+    const pedBtn = page.locator('#dentition-pediatric-btn');
+    await pedBtn.click();
+    await expect(page.locator('#pediatric-upper-arch')).toBeVisible();
+    await expect(page.locator('#pediatric-lower-arch')).toBeVisible();
+    await expect(page.locator('text=Pediatric Primary Dentition (20 Teeth • Milk Dentition 51-85)')).toBeVisible();
+
+    // Switch back to Adult 32-tooth arch
+    const adultBtn = page.locator('#dentition-adult-btn');
+    await adultBtn.click();
+    await expect(page.locator('text=Permanent Adult Dentition (32 Teeth • FDI 11-48)')).toBeVisible();
+
+    // 2. Test Voice-Activated Hands-Free Assistant Bar
+    const voiceBar = page.locator('#voice-assistant-bar');
+    await expect(voiceBar).toBeVisible();
+
+    const toggleVoiceBtn = page.locator('#toggle-voice-btn');
+    await expect(toggleVoiceBtn).toBeVisible();
+    await toggleVoiceBtn.click();
+
+    // Verify Active Listening State
+    await expect(page.locator('#voice-status-pill')).toBeVisible();
+    await expect(page.locator('text=Listening for Dental Commands...')).toBeVisible();
+
+    // 3. Test Voice Trigger Chip: "Tooth 16 Caries Occlusal"
+    const chip16 = page.locator('#voice-chip-16-caries');
+    await expect(chip16).toBeVisible();
+    await chip16.click();
+
+    // Verify recognized transcript and toast
+    await expect(page.locator('#voice-transcript')).toContainText('16 Caries');
+    await expect(page.locator('#voice-feedback-badge')).toContainText('Tooth #16');
+
+    // 4. Test Voice Trigger: "Switch to Pediatric Arch"
+    const chipPed = page.locator('#voice-chip-pediatric');
+    await expect(chipPed).toBeVisible();
+    await chipPed.click();
+
+    // Verify voice switched arch dynamically
+    await expect(page.locator('#pediatric-upper-arch')).toBeVisible();
+
+    // 5. Test Voice Trigger: "Upper Molars Caries Macro"
+    const chipMacro = page.locator('#voice-chip-macro-upper');
+    await expect(chipMacro).toBeVisible();
+    await chipMacro.click();
+    await expect(page.locator('#voice-transcript')).toContainText('Upper Molars');
+  });
+
+  test('21: 72-Hour Price Lock Countdown, Before/After Slider & 0% Healthcare EMI Pre-Approval', async ({ page }) => {
+    await page.goto('http://localhost:3000/plan/pat_aarav_101');
+    await expect(page.locator('text=Interactive 3D Oral Health Record')).toBeVisible({ timeout: 15000 });
+
+    // 1. Verify 72-Hour Price Lock Banner & Live Countdown Ticker
+    const priceLockBanner = page.locator('#price-lock-banner');
+    await expect(priceLockBanner).toBeVisible();
+    await expect(page.locator('#price-lock-countdown')).toBeVisible();
+    await expect(page.locator('text=72-Hour Price Guarantee')).toBeVisible();
+
+    // Test Lock Price Action
+    page.once('dialog', async (dialog) => {
+      await dialog.accept();
+    });
+    const lockBtn = page.locator('#lock-price-now-btn');
+    await expect(lockBtn).toBeVisible();
+    await lockBtn.click();
+
+    // Close UPI Booking modal opened by price lock
+    const closeUpiBtn = page.locator('#close-upi-modal-btn');
+    await expect(closeUpiBtn).toBeVisible();
+    await closeUpiBtn.click();
+
+    // 2. Test Interactive Before/After Smile Transformation Slider
+    const beforeAfterContainer = page.locator('#before-after-container');
+    await expect(beforeAfterContainer).toBeVisible();
+    await expect(page.locator('#before-label')).toBeVisible();
+    await expect(page.locator('#after-label')).toBeVisible();
+
+    const slider = page.locator('#before-after-slider');
+    await expect(slider).toBeVisible();
+    await slider.fill('75');
+    await expect(page.locator('#before-after-pct')).toContainText('75%');
+
+    // 3. Test 0% Healthcare EMI Pre-Approval Modal
+    const emiWidget = page.locator('#emi-calculator-widget');
+    await expect(emiWidget).toBeVisible();
+    await expect(page.locator('text=₹1,533 / Month')).toBeVisible();
+
+    const openEmiBtn = page.locator('#open-emi-modal-btn');
+    await expect(openEmiBtn).toBeVisible();
+    await openEmiBtn.scrollIntoViewIfNeeded();
+    await openEmiBtn.click();
+
+    const emiModal = page.locator('#emi-calculator-modal');
+    await expect(emiModal).toBeVisible();
+    await expect(page.locator('text=0% Healthcare EMI Pre-Approval')).toBeVisible();
+
+    // Test EMI Eligibility Check with Mobile Number
+    const phoneInput = page.locator('#emi-phone-input');
+    await phoneInput.fill('9876543210');
+    await page.locator('#submit-emi-check-btn').click();
+
+    // Verify pre-approved badge
+    const approvedBadge = page.locator('#emi-approved-badge');
+    await expect(approvedBadge).toBeVisible();
+    await expect(approvedBadge).toContainText('Instant Credit Line Pre-Approved');
+
+    // Close EMI Modal
+    await page.locator('#close-emi-modal-btn').click();
+    await expect(emiModal).not.toBeVisible();
+  });
+
+  test('22: CA Section 194J TRACES CSV Export & Section 65B Indian Evidence Act Certificate', async ({ page }) => {
+    await page.goto('http://localhost:3000/billing');
+    await expect(page.locator('h1')).toContainText('GST Invoicing', { timeout: 15000 });
+
+    // Switch to 5th Tab: Visiting Specialist Splits & 194J TDS
+    await page.locator('#billing-tab-consultants').click();
+
+    // 1. Test Export TRACES 194J TDS Return button
+    const exportBtn = page.locator('#export-traces-tds-btn');
+    await expect(exportBtn).toBeVisible();
+    // Verify click triggers download without throwing
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      exportBtn.click(),
+    ]);
+    expect(download.suggestedFilename()).toContain('TRACES');
+
+    // 2. Test Section 65B Indian Evidence Act Court-Admissible Certificate Modal
+    const certBtn = page.locator('#generate-65b-cert-btn');
+    await expect(certBtn).toBeVisible();
+    await certBtn.click();
+
+    const certModal = page.locator('#section-65b-modal');
+    await expect(certModal).toBeVisible();
+    await expect(page.locator('text=Section 65B Indian Evidence Act Certificate')).toBeVisible();
+
+    const seal = page.locator('#evidence-act-seal');
+    await expect(seal).toBeVisible();
+    await expect(seal).toContainText('Tamper-Evident');
+
+    // Test Download Certificate PDF action (automatically closes modal)
+    page.once('dialog', async (dialog) => {
+      await dialog.accept();
+    });
+    const downloadPdfBtn = page.locator('#download-65b-pdf-btn');
+    await expect(downloadPdfBtn).toBeVisible();
+    await downloadPdfBtn.click();
+
+    // Verify Modal has closed
+    await expect(certModal).not.toBeVisible();
+  });
+
+  test('23: Operatory Turnaround Gap Stopwatch & RevPACH Chair Productivity Leaderboard', async ({ page }) => {
+    await page.goto('http://localhost:3000/billing');
+    await expect(page.locator('h1')).toContainText('GST Invoicing', { timeout: 15000 });
+
+    // Switch to 3rd Tab: Operatory Economics
+    await page.locator('#billing-tab-chairs').click();
+
+    // 1. Verify Operatory Turnaround Gap Stopwatch Monitor
+    const monitor = page.locator('#chair-turnaround-monitor');
+    await expect(monitor).toBeVisible();
+    await expect(page.locator('text=Operatory Turnaround Stopwatch & Idle-Time Leakage Monitor')).toBeVisible();
+    await expect(page.locator('text=Idle Turnaround Alert')).toBeVisible();
+    await expect(page.locator('text=24m gap')).toBeVisible();
+    await expect(page.locator('text=(Loss: ₹420)')).toBeVisible();
+
+    // 2. Test Seat Next Patient Action
+    const seatBtn = page.locator('#seat-patient-op2-btn');
+    await expect(seatBtn).toBeVisible();
+    await seatBtn.click();
+
+    // Verify turnaround reset notification
+    await expect(page.locator('text=Patient seated in Operatory 2')).toBeVisible();
+
+    // 3. Verify RevPACH Chair Productivity Leaderboard
+    const leaderboard = page.locator('#revpach-leaderboard');
+    await expect(leaderboard).toBeVisible();
+    await expect(page.locator('text=RevPACH Efficiency Rankings')).toBeVisible();
+    await expect(page.locator('text=RANK 1: OPERATORY 1')).toBeVisible();
+    await expect(leaderboard.locator('text=₹2,780 / hr')).toBeVisible();
+  });
+
+  test('24: Laboratory Warranty-Linked Auto-Recall Engine & Direct 3D Intraoral STL Cloud Vault', async ({ page }) => {
+    // 1. Test Laboratory Warranty-Linked Auto-Recall Engine
+    await page.goto('http://localhost:3000/recall');
+    await expect(page.locator('h1')).toContainText('Automated Patient Recall', { timeout: 15000 });
+
+    const warrantyEngine = page.locator('#warranty-recall-engine');
+    await expect(warrantyEngine).toBeVisible();
+
+    const warrantyBadge = page.locator('#warranty-recall-badge');
+    await expect(warrantyBadge).toBeVisible();
+    await expect(warrantyBadge).toContainText('Lab Warranty Safeguard Active');
+
+    // Test WhatsApp Warranty Alert dispatch
+    page.once('dialog', async (dialog) => {
+      await dialog.accept();
+    });
+    const sendWarrantyBtn = page.locator('#send-warranty-whatsapp-btn');
+    await expect(sendWarrantyBtn).toBeVisible();
+    await sendWarrantyBtn.click();
+
+    // 2. Test Direct 3D Intraoral STL Cloud Vault in Lab Cases
+    await page.goto('http://localhost:3000/lab-cases');
+    await expect(page.locator('h1')).toContainText('Dental Lab Cases Kanban', { timeout: 15000 });
+
+    const stlBar = page.locator('#direct-stl-vault-bar');
+    await expect(stlBar).toBeVisible();
+    await expect(page.locator('text=Direct 3D Intraoral STL Cloud Vault')).toBeVisible();
+    await expect(page.locator('text=Scanner Direct Sync (TRIOS / Medit / iTero)')).toBeVisible();
+
+    // Test STL Download action
+    const downloadStlBtn = page.locator('#download-stl-btn').first();
+    await expect(downloadStlBtn).toBeVisible();
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      downloadStlBtn.click(),
+    ]);
+    expect(download.suggestedFilename()).toContain('.stl');
+
+    // Test 3D STL Mesh Inspector Modal
+    const viewStlBtn = page.locator('#view-3d-scan-btn').first();
+    await expect(viewStlBtn).toBeVisible();
+    await viewStlBtn.click();
+
+    const stlModal = page.locator('#stl-viewer-modal');
+    await expect(stlModal).toBeVisible();
+    await expect(page.locator('text=Intraoral 3D Scan Mesh Inspector')).toBeVisible();
+    await expect(page.locator('text=248,500 Triangles')).toBeVisible();
+    await expect(page.locator('text=Continuous <8µm')).toBeVisible();
+
+    // Close Modal
+    await page.locator('#close-stl-modal-btn').click();
+    await expect(stlModal).not.toBeVisible();
   });
 
 });

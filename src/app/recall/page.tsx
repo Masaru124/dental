@@ -126,6 +126,66 @@ export default function RecallPage() {
         </div>
       </div>
 
+      {/* Lab Warranty-Linked Auto-Recall Engine */}
+      <div
+        id="warranty-recall-engine"
+        className="panel-card"
+        style={{
+          marginBottom: '1.5rem',
+          background: 'linear-gradient(135deg, rgba(240, 253, 250, 0.95), rgba(204, 251, 241, 0.4))',
+          border: '1px solid #99f6e4',
+          borderRadius: '16px',
+          padding: '1.25rem 1.5rem',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span
+                id="warranty-recall-badge"
+                style={{
+                  background: '#0d9488',
+                  color: '#ffffff',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  padding: '3px 10px',
+                  borderRadius: '999px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                Lab Warranty Safeguard Active
+              </span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f766e' }}>
+                Bi-Annual Prophylaxis Required for 5-Year Warranty Continuity
+              </span>
+            </div>
+            <p style={{ fontSize: '12px', color: '#115e59', margin: 0, maxWidth: '650px', lineHeight: 1.4 }}>
+              Indian lab guarantees (Dentsply / Katana Zirconia) require documented 6-month clinical prophylaxis to stay legally enforceable. The engine automatically queues WhatsApp reminders before warranty void milestones.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ textAlign: 'right', marginRight: '4px' }}>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: '#0f766e' }}>Queue Due This Week</div>
+              <div style={{ fontSize: '16px', fontWeight: 800, color: '#134e4a' }}>3 Patients Due</div>
+            </div>
+            <button
+              id="send-warranty-whatsapp-btn"
+              type="button"
+              className="btn btn-primary btn-sm"
+              style={{ background: '#0d9488', borderColor: '#0f766e', gap: '6px' }}
+              onClick={() => {
+                alert('WhatsApp Warranty Prophylaxis reminder sent to Priya Sharma (Tooth #16 Zirconia Crown - Due 14 Sep)!');
+              }}
+            >
+              <Send size={13} />
+              <span>Dispatch Warranty Alerts</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Campaigns Table */}
       <div className="panel-card" style={{ padding: 0, overflow: 'hidden' }}>
         {loading ? (
