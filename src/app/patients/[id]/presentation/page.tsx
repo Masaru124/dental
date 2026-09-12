@@ -124,16 +124,27 @@ export default function PatientPresentationPage() {
 
   if (loading || !data) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
-        <p style={{ color: '#64748b', fontSize: '14px' }}>Loading patient case presentation...</p>
+      <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', gap: '1rem' }}>
+        <div className="animate-spin" style={{ width: '36px', height: '36px', border: '3px solid #e2e8f0', borderTopColor: '#0284c7', borderRadius: '50%' }} />
+        <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Generating Patient Presentation Case Sheet...</div>
+        <div style={{ fontSize: '12px', color: '#64748b' }}>Formatting bilingual clinical procedures and dental diagram</div>
       </div>
     );
   }
+
 
   // Group items by priority for clear patient understanding
   const urgentItems = data.treatmentPlan.filter((i) => i.priority === 'urgent');
   const soonItems = data.treatmentPlan.filter((i) => i.priority === 'soon');
   const preventiveItems = data.treatmentPlan.filter((i) => i.priority === 'preventive' || i.priority === 'elective');
+
+  const getToothLabel = (toothNumber?: string | null) => {
+    if (!toothNumber || toothNumber.toLowerCase() === 'all' || toothNumber === 'undefined') {
+      return lang === 'hi' ? 'संपूर्ण मुख' : 'Full Arch / All';
+    }
+    return `#${toothNumber}`;
+  };
+
 
   // Convert findings back to map for ToothChart preview
   const toothRecordMap: Record<string, any> = {};
@@ -455,7 +466,7 @@ export default function PatientPresentationPage() {
                 <tbody>
                   {urgentItems.map((item) => (
                     <tr key={item.id}>
-                      <td style={{ fontWeight: 700 }}>#{item.toothNumber}</td>
+                      <td style={{ fontWeight: 700 }}>{getToothLabel(item.toothNumber)}</td>
                       <td>
                         <div style={{ fontWeight: 600 }}>{item.friendlyProcedureName}</div>
                         {item.notes && <div style={{ fontSize: '11px', color: '#64748b' }}>{item.notes}</div>}
@@ -504,7 +515,7 @@ export default function PatientPresentationPage() {
                 <tbody>
                   {soonItems.map((item) => (
                     <tr key={item.id}>
-                      <td style={{ fontWeight: 700 }}>#{item.toothNumber}</td>
+                      <td style={{ fontWeight: 700 }}>{getToothLabel(item.toothNumber)}</td>
                       <td>
                         <div style={{ fontWeight: 600 }}>{item.friendlyProcedureName}</div>
                         {item.notes && <div style={{ fontSize: '11px', color: '#64748b' }}>{item.notes}</div>}
@@ -553,7 +564,7 @@ export default function PatientPresentationPage() {
                 <tbody>
                   {preventiveItems.map((item) => (
                     <tr key={item.id}>
-                      <td style={{ fontWeight: 700 }}>{item.toothNumber === 'All' ? 'Full Arch' : `#${item.toothNumber}`}</td>
+                      <td style={{ fontWeight: 700 }}>{getToothLabel(item.toothNumber)}</td>
                       <td>
                         <div style={{ fontWeight: 600 }}>{item.friendlyProcedureName}</div>
                         {item.notes && <div style={{ fontSize: '11px', color: '#64748b' }}>{item.notes}</div>}

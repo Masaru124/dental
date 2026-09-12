@@ -2,12 +2,41 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import ToothChart, { ToothRecordItem, ToothCondition } from '@/components/ToothChart';
-import DentalArch3D from '@/components/DentalArch3D';
-import ToothEditorModal from '@/components/ToothEditorModal';
+import ToothEditorPanel from '@/components/ToothEditorPanel';
 import TreatmentPlanSection from '@/components/TreatmentPlanSection';
-import { User, Phone, Calendar, Clock, AlertTriangle, Plus, Eye, ArrowLeft, Box, Grid } from 'lucide-react';
+import ImagingSection from '@/components/ImagingSection';
+import { User, Phone, Calendar, Clock, AlertTriangle, Plus, Eye, ArrowLeft, Box, Grid, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+
+// Dynamically import DentalArch3D with SSR disabled for maximum page load speed
+const DentalArch3D = dynamic(() => import('@/components/DentalArch3D'), {
+  ssr: false,
+  loading: () => (
+    <div
+      style={{
+        width: '100%',
+        height: '520px',
+        background: '#ffffff',
+        borderRadius: '12px',
+        border: '1px solid #e2e8f0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+      }}
+    >
+      <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
+        Initializing Realistic 3D Dentition Engine...
+      </div>
+      <div style={{ fontSize: '11px', color: '#64748b' }}>
+        Streaming biological PBR enamel & clinical gingiva
+      </div>
+    </div>
+  ),
+});
 
 export default function PatientDetailPage() {
   const params = useParams();
@@ -17,6 +46,7 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<any>(null);
   const [visits, setVisits] = useState<any[]>([]);
   const [toothRecords, setToothRecords] = useState<Record<string, ToothRecordItem>>({});
+  const [aiFindings, setAiFindings] = useState<any[]>([]);
   const [selectedTooth, setSelectedTooth] = useState<string | null>(null);
   const [prefillTreatmentTooth, setPrefillTreatmentTooth] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -38,6 +68,7 @@ export default function PatientDetailPage() {
         setPatient(data.patient);
         setVisits(data.visits || []);
         setToothRecords(data.activeToothChart || {});
+        setAiFindings(data.aiFindings || []);
       }
     } catch (err) {
       console.error('Failed to load patient:', err);
@@ -121,11 +152,24 @@ export default function PatientDetailPage() {
 
   if (loading) {
     return (
-      <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
-        Loading patient clinical record...
+      <div style={{ padding: '2rem 1.5rem', maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <div className="skeleton" style={{ height: '36px', width: '220px' }} />
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="skeleton" style={{ height: '36px', width: '120px' }} />
+            <div className="skeleton" style={{ height: '36px', width: '140px' }} />
+          </div>
+        </div>
+        <div className="panel-card skeleton" style={{ height: '90px', marginBottom: '1.25rem' }} />
+        <div className="panel-card" style={{ height: '440px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', background: '#f8fafc' }}>
+          <div className="animate-spin" style={{ width: '32px', height: '32px', border: '3px solid #e2e8f0', borderTopColor: '#0284c7', borderRadius: '50%' }} />
+          <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>Loading 3D Dental Arch & Clinical Charts...</div>
+          <div style={{ fontSize: '12px', color: '#64748b' }}>Fetching FDI tooth records and radiograph diagnostics</div>
+        </div>
       </div>
     );
   }
+
 
   if (!patient) {
     return (
@@ -138,25 +182,31 @@ export default function PatientDetailPage() {
     );
   }
 
+  const patientDisplayName = patient?.full_name || patient?.name || 'Patient';
+
   return (
     <div>
-      {/* Top Breadcrumb & Action Row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <Link href="/patients" className="btn btn-secondary btn-sm" style={{ textDecoration: 'none' }}>
+      {/* Top Patient Bar with Navigation & Actions */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
+        <Link
+          href="/patients"
+          className="btn btn-secondary btn-sm"
+          style={{ textDecoration: 'none', gap: '6px' }}
+        >
           <ArrowLeft size={14} />
-          <span>All Patients</span>
+          <span>Patient Roster</span>
         </Link>
 
-        <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
-          {/* Chart View Mode Switcher */}
+        {/* View Mode Switcher: 3D Arch, 2D FDI, Dual View */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
           <div
             style={{
-              display: 'inline-flex',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              padding: '2px',
-              gap: '2px',
+              display: 'flex',
+              background: '#f1f5f9',
+              padding: '3px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              boxShadow: 'inset 0 1px 2px rgba(15, 23, 42, 0.04)',
             }}
           >
             <button
@@ -165,17 +215,19 @@ export default function PatientDetailPage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '4px 10px',
+                gap: '5px',
+                padding: '5px 10px',
                 fontSize: '12px',
                 fontWeight: chartViewMode === '3d' ? 700 : 500,
-                background: chartViewMode === '3d' ? '#0284c7' : 'transparent',
+                background: chartViewMode === '3d' ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : 'transparent',
                 color: chartViewMode === '3d' ? '#ffffff' : '#475569',
-                borderRadius: '6px',
+                borderRadius: '8px',
+                boxShadow: chartViewMode === '3d' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+                transition: 'all 0.15s ease',
               }}
             >
               <Box size={14} />
-              <span>Real 3D Arch</span>
+              <span>3D Real Arch</span>
             </button>
             <button
               type="button"
@@ -183,13 +235,15 @@ export default function PatientDetailPage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
-                padding: '4px 10px',
+                gap: '5px',
+                padding: '5px 10px',
                 fontSize: '12px',
                 fontWeight: chartViewMode === '2d' ? 700 : 500,
-                background: chartViewMode === '2d' ? '#0284c7' : 'transparent',
+                background: chartViewMode === '2d' ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : 'transparent',
                 color: chartViewMode === '2d' ? '#ffffff' : '#475569',
-                borderRadius: '6px',
+                borderRadius: '8px',
+                boxShadow: chartViewMode === '2d' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+                transition: 'all 0.15s ease',
               }}
             >
               <Grid size={14} />
@@ -199,12 +253,14 @@ export default function PatientDetailPage() {
               type="button"
               onClick={() => setChartViewMode('both')}
               style={{
-                padding: '4px 8px',
+                padding: '5px 10px',
                 fontSize: '12px',
                 fontWeight: chartViewMode === 'both' ? 700 : 500,
-                background: chartViewMode === 'both' ? '#0284c7' : 'transparent',
+                background: chartViewMode === 'both' ? 'linear-gradient(135deg, #0ea5e9, #0284c7)' : 'transparent',
                 color: chartViewMode === 'both' ? '#ffffff' : '#475569',
-                borderRadius: '6px',
+                borderRadius: '8px',
+                boxShadow: chartViewMode === 'both' ? '0 2px 6px rgba(2, 132, 199, 0.25)' : 'none',
+                transition: 'all 0.15s ease',
               }}
             >
               Dual View
@@ -232,41 +288,57 @@ export default function PatientDetailPage() {
       </div>
 
       {/* Patient Header Banner */}
-      <div className="panel-card" style={{ marginBottom: '1.25rem', background: '#ffffff' }}>
+      <div className="panel-card" style={{ marginBottom: '1.5rem', background: '#ffffff', border: '1px solid #e2e8f0', boxShadow: 'var(--shadow-card)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div
                 style={{
-                  width: '44px',
-                  height: '44px',
-                  borderRadius: '50%',
-                  background: '#e0f2fe',
-                  color: '#0284c7',
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                  color: '#ffffff',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 800,
-                  fontSize: '18px',
+                  fontSize: '20px',
+                  boxShadow: '0 0 0 2px #ffffff, 0 0 0 4px rgba(14, 165, 233, 0.35)',
+                  flexShrink: 0,
                 }}
               >
-                {patient.name.charAt(0)}
+                {patientDisplayName.charAt(0)}
               </div>
               <div>
-                <h1 style={{ fontSize: '20px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}>
-                  {patient.name}
-                </h1>
-                <div style={{ display: 'flex', gap: '1rem', fontSize: '13px', color: '#64748b', marginTop: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em' }}>
+                    {patientDisplayName}
+                  </h1>
+                  {patient.abha_number ? (
+                    <span className="badge badge-abha" style={{ fontSize: '11px', padding: '3px 10px' }}>
+                      ABHA: {patient.abha_number} ({patient.abha_link_status || 'linked'})
+                    </span>
+                  ) : (
+                    <span className="badge badge-abha-unlinked" style={{ fontSize: '11px', padding: '3px 10px' }}>
+                      ABHA: Unlinked
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '1.25rem', fontSize: '13px', color: '#64748b', marginTop: '4px', flexWrap: 'wrap' }}>
                   <span>{patient.age} yrs • {patient.gender}</span>
-                  <span><Phone size={13} style={{ display: 'inline', verticalAlign: '-1px' }} /> {patient.phone}</span>
-                  <span style={{ fontFamily: 'monospace' }}>ID: {patient.id}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Phone size={13} color="#0284c7" />
+                    <span style={{ fontFamily: 'monospace' }}>{patient.phone}</span>
+                  </span>
+                  <span style={{ fontFamily: 'monospace', color: '#94a3b8' }}>Record ID: {patient.id}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Medical History Alert Flag */}
-          {patient.medical_history && (
+          {/* Medical History / Alerts Flag */}
+          {((Array.isArray(patient.medical_alerts) && patient.medical_alerts.length > 0) || patient.medical_alerts || patient.medical_history) && (
             <div
               style={{
                 display: 'flex',
@@ -282,7 +354,12 @@ export default function PatientDetailPage() {
               }}
             >
               <AlertTriangle size={15} color="#f59e0b" />
-              <span>Medical Alert: {patient.medical_history}</span>
+              <span>
+                Medical Alert:{' '}
+                {Array.isArray(patient.medical_alerts)
+                  ? patient.medical_alerts.join(', ')
+                  : patient.medical_alerts || patient.medical_history}
+              </span>
             </div>
           )}
         </div>
@@ -292,23 +369,29 @@ export default function PatientDetailPage() {
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569', alignSelf: 'center' }}>
             Visits ({visits.length}):
           </span>
-          {visits.map((v, idx) => (
-            <div
-              key={v.id}
-              style={{
-                background: idx === 0 ? '#e0f2fe' : '#f8fafc',
-                border: idx === 0 ? '1px solid #bae6fd' : '1px solid #e2e8f0',
-                color: idx === 0 ? '#0369a1' : '#475569',
-                padding: '3px 8px',
-                borderRadius: '4px',
-                fontSize: '11px',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <strong>{new Date(v.visit_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</strong>
-              {v.chief_complaint && ` - ${v.chief_complaint.slice(0, 20)}...`}
-            </div>
-          ))}
+          {visits.map((v, idx) => {
+            const rawDate = v.date || v.visit_date || v.created_at;
+            const dateStr = rawDate && !isNaN(new Date(rawDate).getTime())
+              ? new Date(rawDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+              : 'Recent';
+            return (
+              <div
+                key={v.id}
+                style={{
+                  background: idx === 0 ? '#e0f2fe' : '#f8fafc',
+                  border: idx === 0 ? '1px solid #bae6fd' : '1px solid #e2e8f0',
+                  color: idx === 0 ? '#0369a1' : '#475569',
+                  padding: '3px 8px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <strong>{dateStr}</strong>
+                {v.chief_complaint && ` - ${v.chief_complaint.slice(0, 20)}...`}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -327,9 +410,19 @@ export default function PatientDetailPage() {
             records={toothRecords}
             selectedTooth={selectedTooth}
             onSelectTooth={(num) => setSelectedTooth(num)}
+            aiFindings={aiFindings}
           />
         )}
       </div>
+
+      {/* Imaging & AI Radiograph Section */}
+      {visits.length > 0 && (
+        <ImagingSection
+          visitId={visits[0].id}
+          patientId={patientId}
+          onFindingsGenerated={fetchPatientDetails}
+        />
+      )}
 
       {/* Treatment Plan Section with Live Totals */}
       <TreatmentPlanSection
@@ -338,11 +431,12 @@ export default function PatientDetailPage() {
         onClearPrefillTooth={() => setPrefillTreatmentTooth(null)}
       />
 
-      {/* Tooth Findings & Surface Editor Modal */}
+      {/* Tooth Findings & Surface Editor Slide Panel */}
       {selectedTooth && (
-        <ToothEditorModal
+        <ToothEditorPanel
           toothNumber={selectedTooth}
           currentRecord={toothRecords[selectedTooth]}
+          aiFindings={aiFindings.filter((f) => f.tooth_number === selectedTooth)}
           onSave={handleSaveToothRecord}
           onAddTreatment={(toothNum) => {
             setPrefillTreatmentTooth(toothNum);
@@ -353,44 +447,43 @@ export default function PatientDetailPage() {
 
       {/* New Consultation Visit Modal */}
       {showVisitModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.45)',
-            backdropFilter: 'blur(2px)',
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-          }}
-        >
-          <div className="panel-card" style={{ maxWidth: '460px', width: '100%' }}>
-            <h3 className="panel-title" style={{ marginBottom: '1rem' }}>Start New Consultation Visit</h3>
+        <div className="modal-overlay">
+          <div className="modal-dialog" style={{ maxWidth: '480px' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 className="panel-title" style={{ margin: 0, fontSize: '16px' }}>Start New Consultation Visit</h3>
+              <button
+                type="button"
+                onClick={() => setShowVisitModal(false)}
+                style={{ color: '#94a3b8', fontSize: '18px', cursor: 'pointer', lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
             <form onSubmit={handleCreateVisit}>
-              <div style={{ marginBottom: '1rem' }}>
-                <label className="form-label">Chief Complaint *</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="e.g. Pain in lower right molar, bleeding gums..."
-                  value={complaint}
-                  onChange={(e) => setComplaint(e.target.value)}
-                  required
-                />
+              <div style={{ padding: '1.5rem' }}>
+                <div style={{ marginBottom: '1.15rem' }}>
+                  <label className="form-label">Chief Complaint *</label>
+                  <input
+                    type="text"
+                    className="input-field"
+                    placeholder="e.g. Pain in lower right molar, bleeding gums..."
+                    value={complaint}
+                    onChange={(e) => setComplaint(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label">Visit / Examination Notes</label>
+                  <textarea
+                    className="input-field"
+                    rows={3}
+                    placeholder="Clinical observations, vital signs, radiographic findings..."
+                    value={visitNotes}
+                    onChange={(e) => setVisitNotes(e.target.value)}
+                  />
+                </div>
               </div>
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label">Visit / Examination Notes</label>
-                <textarea
-                  className="input-field"
-                  rows={3}
-                  placeholder="Clinical observations, vital signs, radiographic findings..."
-                  value={visitNotes}
-                  onChange={(e) => setVisitNotes(e.target.value)}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', padding: '1rem 1.5rem', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"

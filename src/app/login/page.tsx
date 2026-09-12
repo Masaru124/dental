@@ -152,29 +152,38 @@ export default function LoginPage() {
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => setRoleDemo('dr.sharma@dentchart.com', 'Dentist123!')}
+              onClick={() => setRoleDemo('dr.sharma@apexdental.in', 'Dentist123!')}
               style={{ justifyContent: 'flex-start' }}
             >
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0284c7' }} />
-              <span>Dentist: Dr. Rajesh Sharma</span>
+              <span>Dentist: Dr. Rajesh Sharma (Koramangala)</span>
             </button>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => setRoleDemo('reception@dentchart.com', 'Reception123!')}
+              onClick={() => setRoleDemo('vikram@apexdental.in', 'Owner123!')}
+              style={{ justifyContent: 'flex-start' }}
+            >
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} />
+              <span>Owner: Vikram Malhotra (All Branches)</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setRoleDemo('pooja@apexdental.in', 'Staff123!')}
               style={{ justifyContent: 'flex-start' }}
             >
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} />
-              <span>Reception: Pooja Verma</span>
+              <span>Front Desk / Staff: Pooja Verma</span>
             </button>
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              onClick={() => setRoleDemo('admin@dentchart.com', 'Admin123!')}
+              onClick={() => setRoleDemo('admin@apexdental.in', 'Admin123!')}
               style={{ justifyContent: 'flex-start' }}
             >
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8b5cf6' }} />
-              <span>Practice Admin</span>
+              <span>Practice Admin: Anita Desai</span>
             </button>
           </div>
         </div>

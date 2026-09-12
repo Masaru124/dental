@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { ToothRecordItem, ToothCondition } from './ToothChart';
 import {
@@ -9,10 +10,7 @@ import {
   Eye,
   ZoomIn,
   ZoomOut,
-  Maximize2,
   Sparkles,
-  Check,
-  AlertTriangle,
   Layers,
   Activity,
   Compass,
@@ -33,50 +31,54 @@ interface ToothAnchor {
   z: number;
 }
 
-// 32 FDI permanent teeth precise anatomical coordinates mapped on the 3D dental scan
+// FDI permanent teeth precise anatomical coordinates aligned with human_teeth.glb crowns
 const TOOTH_ANCHORS: ToothAnchor[] = [
-  // --- Upper Arch (Maxilla) Quadrant 1 (Right: 18 -> 11) ---
-  { fdi: '18', name: 'Upper Right 3rd Molar', isUpper: true, x: -4.3, y: -0.6, z: 1.25 },
-  { fdi: '17', name: 'Upper Right 2nd Molar', isUpper: true, x: -4.1, y: 0.4, z: 1.55 },
-  { fdi: '16', name: 'Upper Right 1st Molar', isUpper: true, x: -3.7, y: 1.4, z: 1.85 },
-  { fdi: '15', name: 'Upper Right 2nd Premolar', isUpper: true, x: -3.2, y: 2.3, z: 2.05 },
-  { fdi: '14', name: 'Upper Right 1st Premolar', isUpper: true, x: -2.7, y: 3.0, z: 2.25 },
-  { fdi: '13', name: 'Upper Right Canine', isUpper: true, x: -1.9, y: 3.6, z: 2.45 },
-  { fdi: '12', name: 'Upper Right Lateral Incisor', isUpper: true, x: -1.0, y: 4.0, z: 2.65 },
-  { fdi: '11', name: 'Upper Right Central Incisor', isUpper: true, x: -0.35, y: 4.15, z: 2.75 },
+  // --- Right Quadrant 1 (18 -> 11) ---
+  { fdi: '18', name: 'Upper Right 3rd Molar (Wisdom)', isUpper: true, x: -4.85, y: 0.35, z: -3.85 },
+  { fdi: '17', name: 'Upper Right 2nd Molar', isUpper: true, x: -4.55, y: 0.30, z: -1.75 },
+  { fdi: '16', name: 'Upper Right 1st Molar', isUpper: true, x: -4.15, y: 0.25, z: 0.45 },
+  { fdi: '15', name: 'Upper Right 2nd Premolar', isUpper: true, x: -3.65, y: 0.20, z: 1.90 },
+  { fdi: '14', name: 'Upper Right 1st Premolar', isUpper: true, x: -2.95, y: 0.15, z: 3.10 },
+  { fdi: '13', name: 'Upper Right Canine', isUpper: true, x: -2.15, y: 0.10, z: 4.10 },
+  { fdi: '12', name: 'Upper Right Lateral Incisor', isUpper: true, x: -1.20, y: 0.05, z: 4.65 },
+  { fdi: '11', name: 'Upper Right Central Incisor', isUpper: true, x: -0.42, y: 0.02, z: 4.85 },
 
-  // --- Upper Arch (Maxilla) Quadrant 2 (Left: 21 -> 28) ---
-  { fdi: '21', name: 'Upper Left Central Incisor', isUpper: true, x: 0.35, y: 4.15, z: 2.75 },
-  { fdi: '22', name: 'Upper Left Lateral Incisor', isUpper: true, x: 1.0, y: 4.0, z: 2.65 },
-  { fdi: '23', name: 'Upper Left Canine', isUpper: true, x: 1.9, y: 3.6, z: 2.45 },
-  { fdi: '24', name: 'Upper Left 1st Premolar', isUpper: true, x: 2.7, y: 3.0, z: 2.25 },
-  { fdi: '25', name: 'Upper Left 2nd Premolar', isUpper: true, x: 3.2, y: 2.3, z: 2.05 },
-  { fdi: '26', name: 'Upper Left 1st Molar', isUpper: true, x: 3.7, y: 1.4, z: 1.85 },
-  { fdi: '27', name: 'Upper Left 2nd Molar', isUpper: true, x: 4.1, y: 0.4, z: 1.55 },
-  { fdi: '28', name: 'Upper Left 3rd Molar', isUpper: true, x: 4.3, y: -0.6, z: 1.25 },
-
-  // --- Lower Arch (Mandible) Quadrant 4 (Right: 48 -> 41) ---
-  { fdi: '48', name: 'Lower Right 3rd Molar', isUpper: false, x: -4.0, y: -0.6, z: -1.25 },
-  { fdi: '47', name: 'Lower Right 2nd Molar', isUpper: false, x: -3.8, y: 0.4, z: -1.55 },
-  { fdi: '46', name: 'Lower Right 1st Molar', isUpper: false, x: -3.4, y: 1.3, z: -1.85 },
-  { fdi: '45', name: 'Lower Right 2nd Premolar', isUpper: false, x: -2.9, y: 2.1, z: -2.05 },
-  { fdi: '44', name: 'Lower Right 1st Premolar', isUpper: false, x: -2.4, y: 2.8, z: -2.25 },
-  { fdi: '43', name: 'Lower Right Canine', isUpper: false, x: -1.7, y: 3.3, z: -2.45 },
-  { fdi: '42', name: 'Lower Right Lateral Incisor', isUpper: false, x: -0.9, y: 3.7, z: -2.60 },
-  { fdi: '41', name: 'Lower Right Central Incisor', isUpper: false, x: -0.3, y: 3.85, z: -2.70 },
-
-  // --- Lower Arch (Mandible) Quadrant 3 (Left: 31 -> 38) ---
-  { fdi: '31', name: 'Lower Left Central Incisor', isUpper: false, x: 0.3, y: 3.85, z: -2.70 },
-  { fdi: '32', name: 'Lower Left Lateral Incisor', isUpper: false, x: 0.9, y: 3.7, z: -2.60 },
-  { fdi: '33', name: 'Lower Left Canine', isUpper: false, x: 1.7, y: 3.3, z: -2.45 },
-  { fdi: '34', name: 'Lower Left 1st Premolar', isUpper: false, x: 2.4, y: 2.8, z: -2.25 },
-  { fdi: '35', name: 'Lower Left 2nd Premolar', isUpper: false, x: 2.9, y: 2.1, z: -2.05 },
-  { fdi: '36', name: 'Lower Left 1st Molar', isUpper: false, x: 3.4, y: 1.3, z: -1.85 },
-  { fdi: '37', name: 'Lower Left 2nd Molar', isUpper: false, x: 3.8, y: 0.4, z: -1.55 },
-  { fdi: '38', name: 'Lower Left 3rd Molar', isUpper: false, x: 4.0, y: -0.6, z: -1.25 },
+  // --- Left Quadrant 2 (21 -> 28) ---
+  { fdi: '21', name: 'Upper Left Central Incisor', isUpper: true, x: 0.42, y: 0.02, z: 4.85 },
+  { fdi: '22', name: 'Upper Left Lateral Incisor', isUpper: true, x: 1.20, y: 0.05, z: 4.65 },
+  { fdi: '23', name: 'Upper Left Canine', isUpper: true, x: 2.15, y: 0.10, z: 4.10 },
+  { fdi: '24', name: 'Upper Left 1st Premolar', isUpper: true, x: 2.95, y: 0.15, z: 3.10 },
+  { fdi: '25', name: 'Upper Left 2nd Premolar', isUpper: true, x: 3.65, y: 0.20, z: 1.90 },
+  { fdi: '26', name: 'Upper Left 1st Molar', isUpper: true, x: 4.15, y: 0.25, z: 0.45 },
+  { fdi: '27', name: 'Upper Left 2nd Molar', isUpper: true, x: 4.55, y: 0.30, z: -1.75 },
+  { fdi: '28', name: 'Upper Left 3rd Molar (Wisdom)', isUpper: true, x: 4.85, y: 0.35, z: -3.85 },
 ];
 
-let cachedScanGeometry: THREE.BufferGeometry | null = null;
+// Module-level in-memory cache for the 6.88MB realistic dental scan
+let cachedRawGLTFScene: THREE.Group | null = null;
+let gltfPromise: Promise<THREE.Group> | null = null;
+
+function loadFullDentitionModel(): Promise<THREE.Group> {
+  if (cachedRawGLTFScene) {
+    return Promise.resolve(cachedRawGLTFScene);
+  }
+  if (gltfPromise) {
+    return gltfPromise;
+  }
+  gltfPromise = new Promise((resolve, reject) => {
+    const loader = new GLTFLoader();
+    loader.load(
+      '/human_teeth.glb',
+      (gltf) => {
+        cachedRawGLTFScene = gltf.scene;
+        resolve(gltf.scene);
+      },
+      undefined,
+      reject
+    );
+  });
+  return gltfPromise;
+}
 
 export default function DentalArch3D({
   records,
@@ -84,18 +86,17 @@ export default function DentalArch3D({
   onSelectTooth,
 }: DentalArch3DProps) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [loadingModel, setLoadingModel] = useState(!cachedScanGeometry);
+  const [loadingModel, setLoadingModel] = useState(true);
   const [hoveredTooth, setHoveredTooth] = useState<string | null>(null);
   const [hoveredName, setHoveredName] = useState<string | null>(null);
   const [autoRotate, setAutoRotate] = useState(false);
-  const [viewPreset, setViewPreset] = useState<'both' | 'anterior' | 'upper' | 'lower'>('both');
+  const [showMarkers, setShowMarkers] = useState(true);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const rootGroupRef = useRef<THREE.Group | null>(null);
-  const upperArchMeshRef = useRef<THREE.Mesh | null>(null);
-  const lowerArchMeshRef = useRef<THREE.Mesh | null>(null);
+  const modelRef = useRef<THREE.Group | null>(null);
   const markerGroupRef = useRef<THREE.Group | null>(null);
   const colliderMeshesRef = useRef<Map<string, THREE.Mesh>>(new Map());
   const indicatorMeshesRef = useRef<Map<string, THREE.Group>>(new Map());
@@ -105,6 +106,12 @@ export default function DentalArch3D({
     prevX: 0,
     prevY: 0,
   });
+
+  // Demand-driven rendering: only render when scene is dirty (orbit, zoom, record changes, hover)
+  const needsRenderRef = useRef<boolean>(true);
+  const requestRender = () => {
+    needsRenderRef.current = true;
+  };
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -118,13 +125,13 @@ export default function DentalArch3D({
     scene.background = new THREE.Color(0xf8fafc);
     sceneRef.current = scene;
 
-    // 2. Camera setup facing the dentition
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
-    camera.position.set(0, 0, 15.5);
+    // 2. Camera setup facing anterior dentition
+    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(0, 2.5, 17.5);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
-    // 3. WebGL Renderer
+    // 3. WebGL Renderer with modern PCFShadowMap (no deprecation warning)
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -133,139 +140,177 @@ export default function DentalArch3D({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     rendererRef.current = renderer;
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
 
-    // 4. Clinical Dental Studio Lighting Rig
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.7);
+    // 4. Clinical Dental Operatory Studio Lighting Rig
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
     scene.add(ambientLight);
 
-    const mainKeyLight = new THREE.DirectionalLight(0xffffff, 2.4);
-    mainKeyLight.position.set(5, 10, 12);
+    // Soft sky reflection & floor bounce
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xdbeafe, 1.4);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
+
+    // Main operatory key light with soft shadows
+    const mainKeyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    mainKeyLight.position.set(6, 12, 14);
     mainKeyLight.castShadow = true;
+    mainKeyLight.shadow.mapSize.width = 2048;
+    mainKeyLight.shadow.mapSize.height = 2048;
+    mainKeyLight.shadow.bias = -0.0001;
     scene.add(mainKeyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xe0f2fe, 1.5);
-    fillLight.position.set(-6, -4, 8);
-    scene.add(fillLight);
+    // Lateral fill lights
+    const fillLight1 = new THREE.DirectionalLight(0xe0f2fe, 1.4);
+    fillLight1.position.set(-8, 4, 10);
+    scene.add(fillLight1);
 
-    const rimLight = new THREE.DirectionalLight(0xffedd5, 1.1);
-    rimLight.position.set(0, 8, -6);
+    const fillLight2 = new THREE.DirectionalLight(0xfff7ed, 1.2);
+    fillLight2.position.set(8, -2, 10);
+    scene.add(fillLight2);
+
+    // Posterior rim light to delineate cusp anatomy
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.1);
+    rimLight.position.set(0, 10, -12);
     scene.add(rimLight);
 
     // 5. Root Group
     const rootGroup = new THREE.Group();
-    // Clinical default tilt: anterior smile presentation facing camera
-    rootGroup.rotation.x = -Math.PI * 0.40;
+    // Default anterior smile presentation angle
+    rootGroup.rotation.x = -Math.PI * 0.08;
     scene.add(rootGroup);
     rootGroupRef.current = rootGroup;
 
-    // 6. Function to build the complete dual-arch intraoral dental model
-    const setupDualDentalArches = (baseGeometry: THREE.BufferGeometry) => {
-      // Premium Clinical Enamel Material (Vita A1/A2 shade with clearcoat specular sheen)
-      const enamelMaterial = new THREE.MeshPhysicalMaterial({
-        color: 0xfcfbf8,
-        roughness: 0.18,
-        metalness: 0.02,
-        clearcoat: 0.92,
-        clearcoatRoughness: 0.10,
-        reflectivity: 0.70,
+    // 6. Setup Interactive Markers & Colliders
+    const markersGroup = new THREE.Group();
+    rootGroup.add(markersGroup);
+    markerGroupRef.current = markersGroup;
+
+    const collidersMap = new Map<string, THREE.Mesh>();
+    const indicatorsMap = new Map<string, THREE.Group>();
+
+    TOOTH_ANCHORS.forEach((anchor) => {
+      // Invisible hit-box collider
+      const colliderGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.9, 12);
+      colliderGeo.rotateX(Math.PI / 2);
+      const colliderMat = new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
       });
+      const colliderMesh = new THREE.Mesh(colliderGeo, colliderMat);
+      colliderMesh.position.set(anchor.x, anchor.y, anchor.z);
+      colliderMesh.userData = { fdi: anchor.fdi, name: anchor.name, isUpper: anchor.isUpper };
+      colliderMesh.name = `collider_${anchor.fdi}`;
+      markersGroup.add(colliderMesh);
+      collidersMap.set(anchor.fdi, colliderMesh);
 
-      // Upper Arch (Maxilla)
-      const upperMesh = new THREE.Mesh(baseGeometry, enamelMaterial);
-      upperMesh.castShadow = true;
-      upperMesh.receiveShadow = true;
-      upperMesh.position.set(0, 0, 0.4);
-      rootGroup.add(upperMesh);
-      upperArchMeshRef.current = upperMesh;
+      // Clinical Surgical Indicator Ring
+      const indicatorGroup = new THREE.Group();
+      indicatorGroup.position.set(anchor.x, anchor.y, anchor.z);
+      // Orient normal towards buccal surface curvature
+      indicatorGroup.rotation.y = Math.atan2(anchor.x, anchor.z) * 0.7;
+      indicatorGroup.userData = { fdi: anchor.fdi, isUpper: anchor.isUpper };
 
-      // Lower Arch (Mandible)
-      // Cloned from scan, inverted along Z and scaled to match human dental occlusion
-      const lowerGeometry = baseGeometry.clone();
-      lowerGeometry.scale(0.95, 0.95, -0.95);
-      lowerGeometry.computeVertexNormals();
-
-      const lowerMesh = new THREE.Mesh(lowerGeometry, enamelMaterial.clone());
-      lowerMesh.castShadow = true;
-      lowerMesh.receiveShadow = true;
-      // Slight vertical separation for clinical occlusal clearance
-      lowerMesh.position.set(0, -0.2, -0.4);
-      rootGroup.add(lowerMesh);
-      lowerArchMeshRef.current = lowerMesh;
-
-      // 7. Interactive Markers & Hit-Box Colliders
-      const markersGroup = new THREE.Group();
-      rootGroup.add(markersGroup);
-      markerGroupRef.current = markersGroup;
-
-      const collidersMap = new Map<string, THREE.Mesh>();
-      const indicatorsMap = new Map<string, THREE.Group>();
-
-      TOOTH_ANCHORS.forEach((anchor) => {
-        // A) Invisible Hit-Box Collider for accurate click/hover raycasting
-        const colliderGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.9, 12);
-        colliderGeo.rotateX(Math.PI / 2);
-        const colliderMat = new THREE.MeshBasicMaterial({
-          transparent: true,
-          opacity: 0,
-          depthWrite: false,
-        });
-        const colliderMesh = new THREE.Mesh(colliderGeo, colliderMat);
-        colliderMesh.position.set(anchor.x, anchor.y, anchor.z);
-        colliderMesh.userData = { fdi: anchor.fdi, name: anchor.name, isUpper: anchor.isUpper };
-        colliderMesh.name = `collider_${anchor.fdi}`;
-        markersGroup.add(colliderMesh);
-        collidersMap.set(anchor.fdi, colliderMesh);
-
-        // B) Elegant Clinical Surgical Ring Indicator
-        const indicatorGroup = new THREE.Group();
-        indicatorGroup.position.set(anchor.x, anchor.y, anchor.z);
-
-        // Holographic Target Ring
-        const ringGeo = new THREE.RingGeometry(0.28, 0.38, 24);
-        const ringMat = new THREE.MeshBasicMaterial({
-          color: 0x0284c7,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.65,
-        });
-        const ringMesh = new THREE.Mesh(ringGeo, ringMat);
-        ringMesh.name = 'ringMesh';
-        indicatorGroup.add(ringMesh);
-
-        // Center clinical dot
-        const dotGeo = new THREE.CircleGeometry(0.14, 16);
-        const dotMat = new THREE.MeshBasicMaterial({
-          color: 0x0284c7,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.85,
-        });
-        const dotMesh = new THREE.Mesh(dotGeo, dotMat);
-        dotMesh.name = 'dotMesh';
-        indicatorGroup.add(dotMesh);
-
-        markersGroup.add(indicatorGroup);
-        indicatorsMap.set(anchor.fdi, indicatorGroup);
+      const ringGeo = new THREE.RingGeometry(0.18, 0.28, 24);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x0284c7,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.55,
       });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.name = 'ringMesh';
+      indicatorGroup.add(ringMesh);
 
-      colliderMeshesRef.current = collidersMap;
-      indicatorMeshesRef.current = indicatorsMap;
-      setLoadingModel(false);
-    };
+      const dotGeo = new THREE.CircleGeometry(0.09, 16);
+      const dotMat = new THREE.MeshBasicMaterial({
+        color: 0x0284c7,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85,
+      });
+      const dotMesh = new THREE.Mesh(dotGeo, dotMat);
+      dotMesh.name = 'dotMesh';
+      indicatorGroup.add(dotMesh);
 
-    // Load Scan Geometry
-    if (cachedScanGeometry) {
-      setupDualDentalArches(cachedScanGeometry);
-    } else {
-      const loader = new OBJLoader();
-      loader.load(
-        '/models/jaw.obj',
-        (obj) => {
+      markersGroup.add(indicatorGroup);
+      indicatorsMap.set(anchor.fdi, indicatorGroup);
+    });
+
+    colliderMeshesRef.current = collidersMap;
+    indicatorMeshesRef.current = indicatorsMap;
+
+    // 7. Load Photorealistic 3D Human Teeth Model (with in-memory cache)
+    let isMounted = true;
+    loadFullDentitionModel()
+      .then((rawModel) => {
+        if (!isMounted) return;
+
+        // Clean up previous model if any to prevent duplicates
+        if (modelRef.current && rootGroup.children.includes(modelRef.current)) {
+          rootGroup.remove(modelRef.current);
+        }
+
+        // Compute bounding box and center model
+        const box = new THREE.Box3().setFromObject(rawModel);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        // Normalize scale to match ~11 units viewport arch width
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 11.2 / maxDim;
+
+        // Create Full Dentition Model
+        const model = rawModel.clone(true);
+        model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+        model.scale.set(scale, scale, scale);
+
+        // Enhance materials with biological PBR properties (wet enamel clearcoat + realistic gingiva)
+        model.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            if (mesh.material) {
+              const oldMat = mesh.material as THREE.MeshStandardMaterial;
+              const isTeeth = mesh.name.toLowerCase().includes('teeth');
+              mesh.material = new THREE.MeshPhysicalMaterial({
+                map: oldMat.map || null,
+                normalMap: oldMat.normalMap || null,
+                roughness: isTeeth ? 0.16 : 0.40,
+                metalness: 0.01,
+                clearcoat: isTeeth ? 0.90 : 0.35,
+                clearcoatRoughness: 0.08,
+                reflectivity: 0.82,
+                transmission: isTeeth ? 0.04 : 0.0,
+                ior: 1.54, // biological tooth enamel index of refraction
+                side: THREE.DoubleSide,
+              });
+            }
+          }
+        });
+
+        const modelContainer = new THREE.Group();
+        modelContainer.add(model);
+        modelContainer.position.set(0, 0, 0);
+        rootGroup.add(modelContainer);
+        modelRef.current = modelContainer;
+
+        setLoadingModel(false);
+        requestRender();
+      })
+      .catch((err) => {
+        console.warn('Failed to load human_teeth.glb, falling back to jaw.obj:', err);
+        const objLoader = new OBJLoader();
+        objLoader.load('/models/jaw.obj', (obj) => {
+          if (!isMounted) return;
           const rawMesh = obj.children[0] as THREE.Mesh;
           if (rawMesh && rawMesh.geometry) {
             const geo = rawMesh.geometry.clone();
@@ -273,19 +318,21 @@ export default function DentalArch3D({
             geo.scale(0.021, 0.021, 0.021);
             geo.computeVertexNormals();
 
-            cachedScanGeometry = geo;
-            setupDualDentalArches(geo);
+            const mat = new THREE.MeshPhysicalMaterial({
+              color: 0xfcfbf8,
+              roughness: 0.22,
+              clearcoat: 0.85,
+              side: THREE.DoubleSide,
+            });
+            const fallbackMesh = new THREE.Mesh(geo, mat);
+            rootGroup.add(fallbackMesh);
           }
-        },
-        undefined,
-        (err) => {
-          console.error('Failed to load real jaw scan:', err);
           setLoadingModel(false);
-        }
-      );
-    }
+          requestRender();
+        });
+      });
 
-    // 8. Interactive Mouse Drag & Orbit Controls
+    // 8. Mouse Orbit Controls
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
@@ -293,6 +340,7 @@ export default function DentalArch3D({
       controlsRef.current.isDragging = true;
       controlsRef.current.prevX = e.clientX;
       controlsRef.current.prevY = e.clientY;
+      requestRender();
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -300,17 +348,17 @@ export default function DentalArch3D({
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-      // Smooth Orbit Rotation
       if (controlsRef.current.isDragging && rootGroupRef.current) {
         const deltaX = e.clientX - controlsRef.current.prevX;
         const deltaY = e.clientY - controlsRef.current.prevY;
-        rootGroupRef.current.rotation.y += deltaX * 0.007;
-        rootGroupRef.current.rotation.x = Math.max(-1.4, Math.min(0.8, rootGroupRef.current.rotation.x + deltaY * 0.007));
+        rootGroupRef.current.rotation.y += deltaX * 0.008;
+        rootGroupRef.current.rotation.x += deltaY * 0.008;
         controlsRef.current.prevX = e.clientX;
         controlsRef.current.prevY = e.clientY;
+        requestRender();
       }
 
-      // Raycast against tooth colliders
+      // Hover Raycasting
       raycaster.setFromCamera(mouse, camera);
       const colliders = Array.from(colliderMeshesRef.current.values());
       const intersects = raycaster.intersectObjects(colliders, false);
@@ -320,17 +368,20 @@ export default function DentalArch3D({
         if (hit.userData?.fdi) {
           setHoveredTooth(hit.userData.fdi);
           setHoveredName(hit.userData.name);
-          container.style.cursor = 'pointer';
+          renderer.domElement.style.cursor = 'pointer';
+          requestRender();
         }
       } else {
         setHoveredTooth(null);
         setHoveredName(null);
-        container.style.cursor = 'default';
+        renderer.domElement.style.cursor = controlsRef.current.isDragging ? 'grabbing' : 'grab';
       }
     };
 
     const onPointerUp = () => {
       controlsRef.current.isDragging = false;
+      renderer.domElement.style.cursor = 'grab';
+      requestRender();
     };
 
     const onClick = (e: MouseEvent) => {
@@ -346,6 +397,7 @@ export default function DentalArch3D({
         const hit = intersects[0].object;
         if (hit.userData?.fdi) {
           onSelectTooth(hit.userData.fdi);
+          requestRender();
         }
       }
     };
@@ -353,7 +405,8 @@ export default function DentalArch3D({
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (!cameraRef.current) return;
-      cameraRef.current.position.z = Math.max(9, Math.min(24, cameraRef.current.position.z + e.deltaY * 0.01));
+      cameraRef.current.position.z = Math.max(10, Math.min(28, cameraRef.current.position.z + e.deltaY * 0.01));
+      requestRender();
     };
 
     const domEl = renderer.domElement;
@@ -363,14 +416,18 @@ export default function DentalArch3D({
     domEl.addEventListener('click', onClick);
     domEl.addEventListener('wheel', onWheel, { passive: false });
 
-    // 9. Animation Loop
+    // 9. Demand-Driven Animation Loop: Only renders when dirty or auto-rotating
     let animId: number;
     const animate = () => {
       animId = requestAnimationFrame(animate);
       if (autoRotate && rootGroupRef.current) {
         rootGroupRef.current.rotation.y += 0.005;
+        needsRenderRef.current = true;
       }
-      renderer.render(scene, camera);
+      if (needsRenderRef.current || controlsRef.current.isDragging) {
+        renderer.render(scene, camera);
+        needsRenderRef.current = false;
+      }
     };
     animate();
 
@@ -380,10 +437,12 @@ export default function DentalArch3D({
       cameraRef.current.aspect = newW / height;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(newW, height);
+      requestRender();
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
+      isMounted = false;
       cancelAnimationFrame(animId);
       domEl.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
@@ -392,13 +451,27 @@ export default function DentalArch3D({
       domEl.removeEventListener('wheel', onWheel);
       window.removeEventListener('resize', handleResize);
       renderer.dispose();
+
+      // Cleanly dispose Three.js scene meshes and materials to free GPU RAM
+      scene.traverse((obj) => {
+        if ((obj as THREE.Mesh).isMesh) {
+          const mesh = obj as THREE.Mesh;
+          mesh.geometry?.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach((m) => m.dispose());
+          } else {
+            mesh.material?.dispose();
+          }
+        }
+      });
+
       if (container.contains(domEl)) {
         container.removeChild(domEl);
       }
     };
   }, []);
 
-  // Update Indicator Badges based on records, selection, and hover
+  // Update Indicator Badges based on clinical records, selection, and hover
   useEffect(() => {
     indicatorMeshesRef.current.forEach((group, fdi) => {
       const isSelected = selectedTooth === fdi;
@@ -414,38 +487,38 @@ export default function DentalArch3D({
       const ringMat = ring.material as THREE.MeshBasicMaterial;
       const dotMat = dot.material as THREE.MeshBasicMaterial;
 
-      // Color mapping according to clinical guidelines
-      let hexColor = 0x94a3b8; // default subtle slate
-      let opacity = 0.45;
+      let hexColor = 0x94a3b8;
+      let opacity = 0.35;
       let scale = 1.0;
 
       if (condition === 'caries') {
-        hexColor = 0xd97706; // Amber / Cavity
-        opacity = 0.85;
+        hexColor = 0xd97706; // Amber
+        opacity = 0.90;
+        scale = 1.15;
       } else if (condition === 'filling') {
-        hexColor = 0x0284c7; // Blue / Restored
+        hexColor = 0x0284c7; // Blue
         opacity = 0.85;
       } else if (condition === 'crown') {
-        hexColor = 0x7c3aed; // Violet / Prosthetic
+        hexColor = 0x7c3aed; // Violet
         opacity = 0.90;
       } else if (condition === 'missing') {
-        hexColor = 0x64748b; // Muted Dark Slate
-        opacity = 0.50;
-      } else if (condition === 'healthy') {
-        hexColor = 0x10b981; // Emerald Healthy
+        hexColor = 0x64748b;
         opacity = 0.40;
+      } else if (condition === 'healthy') {
+        hexColor = 0x10b981; // Emerald
+        opacity = 0.30;
       }
 
       if (isHovered) {
-        scale = 1.35;
-        opacity = 0.95;
+        scale = 1.45;
+        opacity = 1.0;
         hexColor = 0x0284c7;
       }
 
       if (isSelected) {
-        scale = 1.6;
+        scale = 1.7;
         opacity = 1.0;
-        hexColor = 0x0f172a; // High-contrast Focus
+        hexColor = 0x0f172a;
       }
 
       ringMat.color.setHex(hexColor);
@@ -454,42 +527,37 @@ export default function DentalArch3D({
       dotMat.opacity = isSelected ? 1.0 : opacity * 0.8;
       group.scale.set(scale, scale, scale);
     });
+    requestRender();
   }, [records, selectedTooth, hoveredTooth]);
 
-  // View Angle Presets
-  const applyViewPreset = (preset: 'both' | 'anterior' | 'upper' | 'lower') => {
-    setViewPreset(preset);
-    if (!cameraRef.current || !rootGroupRef.current) return;
-
-    if (preset === 'both') {
-      // Full Dentition Smile View
-      cameraRef.current.position.set(0, 0, 15.5);
-      cameraRef.current.lookAt(0, 0, 0);
-      rootGroupRef.current.rotation.set(-Math.PI * 0.40, 0, 0);
-      if (upperArchMeshRef.current) upperArchMeshRef.current.visible = true;
-      if (lowerArchMeshRef.current) lowerArchMeshRef.current.visible = true;
-    } else if (preset === 'anterior') {
-      // Close up of anterior front teeth
-      cameraRef.current.position.set(0, 0, 11.5);
-      cameraRef.current.lookAt(0, 0.4, 0);
-      rootGroupRef.current.rotation.set(-Math.PI * 0.42, 0, 0);
-      if (upperArchMeshRef.current) upperArchMeshRef.current.visible = true;
-      if (lowerArchMeshRef.current) lowerArchMeshRef.current.visible = true;
-    } else if (preset === 'upper') {
-      // Occlusal view of Maxilla (Upper Arch)
-      cameraRef.current.position.set(0, 0, 14.5);
-      cameraRef.current.lookAt(0, 0, 0);
-      rootGroupRef.current.rotation.set(0, 0, 0);
-      if (upperArchMeshRef.current) upperArchMeshRef.current.visible = true;
-      if (lowerArchMeshRef.current) lowerArchMeshRef.current.visible = false;
-    } else if (preset === 'lower') {
-      // Occlusal view of Mandible (Lower Arch)
-      cameraRef.current.position.set(0, 0, 14.5);
-      cameraRef.current.lookAt(0, 0, 0);
-      rootGroupRef.current.rotation.set(Math.PI, 0, 0);
-      if (upperArchMeshRef.current) upperArchMeshRef.current.visible = false;
-      if (lowerArchMeshRef.current) lowerArchMeshRef.current.visible = true;
+  // Toggle diagnostic markers visibility
+  useEffect(() => {
+    if (markerGroupRef.current) {
+      markerGroupRef.current.children.forEach((child) => {
+        if (child.name.startsWith('collider_')) {
+          child.visible = true; // Always retain hit-boxes for raycasting
+        } else {
+          child.visible = showMarkers;
+        }
+      });
+      requestRender();
     }
+  }, [showMarkers]);
+
+  // Reset to default Full Dentition 3D Perspective
+  const resetView = () => {
+    if (!cameraRef.current || !rootGroupRef.current) return;
+    cameraRef.current.position.set(0, 1.2, 16.5);
+    cameraRef.current.lookAt(0, -0.2, 0);
+    rootGroupRef.current.rotation.set(-Math.PI * 0.10, 0, 0);
+    requestRender();
+  };
+
+  const handleZoom = (direction: 'in' | 'out') => {
+    if (!cameraRef.current) return;
+    const delta = direction === 'in' ? -2.0 : 2.0;
+    cameraRef.current.position.z = Math.max(10, Math.min(28, cameraRef.current.position.z + delta));
+    requestRender();
   };
 
   const activeToothNumber = hoveredTooth || selectedTooth;
@@ -533,51 +601,60 @@ export default function DentalArch3D({
                 letterSpacing: '0.04em',
               }}
             >
-              REAL 3D INTRAORAL SCAN
+              REALISTIC 3D DENTITION
             </span>
             <h3 className="panel-title" style={{ margin: 0, fontSize: '17px', fontWeight: 700 }}>
-              Anatomical 3D Dentition & Occlusion Model
+              Full Dentition 3D Anatomical Model
             </h3>
           </div>
           <p style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
-            Full anatomical human dental arches with real cusp morphology • Drag to orbit 360° • Click any tooth
+            Photorealistic PBR dental scan • Vita A2 pearlescent enamel & clinical gingiva • Drag to orbit 360° • Click any tooth
           </p>
         </div>
 
-        {/* View Angle Presets */}
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Full Dentition Interactive Controls */}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => applyViewPreset('both')}
-            style={{ fontWeight: viewPreset === 'both' ? 700 : 500, borderColor: viewPreset === 'both' ? '#0284c7' : undefined }}
+            onClick={resetView}
+            style={{ fontWeight: 700, borderColor: '#0284c7', color: '#0284c7' }}
+            title="Reset to Full Dentition View"
           >
             Full Dentition
           </button>
+
+          <div style={{ width: '1px', height: '18px', background: '#e2e8f0', margin: '0 4px' }} />
+
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => applyViewPreset('anterior')}
-            style={{ fontWeight: viewPreset === 'anterior' ? 700 : 500, borderColor: viewPreset === 'anterior' ? '#0284c7' : undefined }}
+            onClick={() => setShowMarkers(!showMarkers)}
+            style={{ color: showMarkers ? '#0284c7' : '#64748b' }}
+            title={showMarkers ? 'Hide Diagnostic Markers' : 'Show Diagnostic Markers'}
           >
-            Anterior Smile
+            <Layers size={14} />
+            <span>{showMarkers ? 'Markers On' : 'Anatomical'}</span>
           </button>
+
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => applyViewPreset('upper')}
-            style={{ fontWeight: viewPreset === 'upper' ? 700 : 500, borderColor: viewPreset === 'upper' ? '#0284c7' : undefined }}
+            onClick={() => handleZoom('in')}
+            title="Zoom In"
           >
-            Upper Arch
+            <ZoomIn size={14} />
           </button>
+
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => applyViewPreset('lower')}
-            style={{ fontWeight: viewPreset === 'lower' ? 700 : 500, borderColor: viewPreset === 'lower' ? '#0284c7' : undefined }}
+            onClick={() => handleZoom('out')}
+            title="Zoom Out"
           >
-            Lower Arch
+            <ZoomOut size={14} />
           </button>
+
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -595,8 +672,8 @@ export default function DentalArch3D({
         style={{
           width: '100%',
           height: '520px',
-          borderRadius: '10px',
-          background: 'radial-gradient(circle at 50% 35%, #ffffff 0%, #e2e8f0 100%)',
+          background: 'radial-gradient(ellipse at center, #ffffff 0%, #f1f5f9 100%)',
+          borderRadius: '8px',
           border: '1px solid #cbd5e1',
           position: 'relative',
           overflow: 'hidden',
@@ -621,10 +698,10 @@ export default function DentalArch3D({
           >
             <Activity size={28} className="animate-spin" color="#0284c7" />
             <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
-              Loading Real Anatomical Dental Scan...
+              Loading Realistic 3D Human Dentition...
             </div>
             <div style={{ fontSize: '11px', color: '#64748b' }}>
-              Rendering clinical human dental anatomy & PBR enamel shaders
+              Rendering anatomical PBR enamel, normal maps & clinical gingiva
             </div>
           </div>
         )}
@@ -699,13 +776,13 @@ export default function DentalArch3D({
             position: 'absolute',
             top: '1rem',
             right: '1rem',
-            background: 'rgba(255,255,255,0.85)',
+            background: 'rgba(255,255,255,0.88)',
             backdropFilter: 'blur(6px)',
             border: '1px solid #e2e8f0',
             padding: '4px 10px',
             borderRadius: '20px',
             fontSize: '11px',
-            color: '#64748b',
+            color: '#475569',
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
@@ -713,7 +790,7 @@ export default function DentalArch3D({
           }}
         >
           <Compass size={13} color="#0284c7" />
-          Click & drag to rotate • Scroll to zoom
+          Click & drag to orbit • Scroll to zoom
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
+    "@vercel/blob": "^2.8.0",
     "bcryptjs": "^3.0.3",
     "html2canvas": "^1.4.1",
     "jose": "^6.2.12",
@@ -21,6 +22,7 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",

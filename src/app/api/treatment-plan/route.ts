@@ -1,51 +1,70 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@/lib/db';
-import { getSession } from '@/lib/auth';
+import { getSession, authorize } from '@/lib/auth';
 
+/**
+ * GET /api/treatment-plan?visit_id=xxx OR ?patient_id=xxx
+ * Server-side computed totals — never trust client-submitted totals
+ */
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const patient_id = searchParams.get('patient_id');
-
-    if (!patient_id) {
-      return NextResponse.json({ error: 'patient_id is required' }, { status: 400 });
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const items = await sql`
-      SELECT * FROM treatment_plan_items
-      WHERE patient_id = ${patient_id}
-      ORDER BY 
-        CASE priority
-          WHEN 'urgent' THEN 1
-          WHEN 'soon' THEN 2
-          WHEN 'preventive' THEN 3
-          WHEN 'elective' THEN 4
-          ELSE 5
-        END,
-        created_at ASC
-    `;
+    const { searchParams } = new URL(req.url);
+    const visitId = searchParams.get('visit_id');
+    const patientId = searchParams.get('patient_id');
 
-    // Server-side compute totals
-    const grandTotal = items.reduce(
-      (sum: number, item: any) => sum + Number(item.quantity) * Number(item.unit_price),
-      0
-    );
+    let items;
+    if (visitId) {
+      items = await sql`
+        SELECT * FROM treatment_plan_items
+        WHERE visit_id = ${visitId}
+        ORDER BY
+          CASE priority
+            WHEN 'urgent' THEN 1
+            WHEN 'soon' THEN 2
+            WHEN 'preventive' THEN 3
+            WHEN 'elective' THEN 4
+            ELSE 5
+          END,
+          created_at ASC
+      `;
+    } else if (patientId) {
+      items = await sql`
+        SELECT tpi.* FROM treatment_plan_items tpi
+        WHERE tpi.visit_id IN (
+          SELECT v.id FROM visits v WHERE v.patient_id = ${patientId}
+        )
+        ORDER BY
+          CASE tpi.priority
+            WHEN 'urgent' THEN 1
+            WHEN 'soon' THEN 2
+            WHEN 'preventive' THEN 3
+            WHEN 'elective' THEN 4
+            ELSE 5
+          END,
+          tpi.created_at ASC
+      `;
+    } else {
+      return NextResponse.json({ error: 'visit_id or patient_id is required' }, { status: 400 });
+    }
 
-    const urgentTotal = items
-      .filter((i: any) => i.priority === 'urgent')
-      .reduce((sum: number, item: any) => sum + Number(item.quantity) * Number(item.unit_price), 0);
+    // Server-side compute totals (architecture.md §5 invariant)
+    const computeTotal = (filterFn: (i: any) => boolean) =>
+      items.filter(filterFn).reduce(
+        (sum: number, item: any) => sum + Number(item.quantity) * Number(item.unit_price),
+        0
+      );
 
-    const soonTotal = items
-      .filter((i: any) => i.priority === 'soon')
-      .reduce((sum: number, item: any) => sum + Number(item.quantity) * Number(item.unit_price), 0);
-
-    const preventiveTotal = items
-      .filter((i: any) => i.priority === 'preventive')
-      .reduce((sum: number, item: any) => sum + Number(item.quantity) * Number(item.unit_price), 0);
-
-    const electiveTotal = items
-      .filter((i: any) => i.priority === 'elective')
-      .reduce((sum: number, item: any) => sum + Number(item.quantity) * Number(item.unit_price), 0);
+    const grandTotal = computeTotal(() => true);
+    const urgentTotal = computeTotal((i: any) => i.priority === 'urgent');
+    const soonTotal = computeTotal((i: any) => i.priority === 'soon');
+    const preventiveTotal = computeTotal((i: any) => i.priority === 'preventive');
+    const electiveTotal = computeTotal((i: any) => i.priority === 'elective');
+    const insuranceClaimable = computeTotal((i: any) => i.insurance_claimable);
 
     return NextResponse.json({
       items,
@@ -55,6 +74,7 @@ export async function GET(req: Request) {
         soonTotal,
         preventiveTotal,
         electiveTotal,
+        insuranceClaimable,
       },
     });
   } catch (error: any) {
@@ -63,6 +83,10 @@ export async function GET(req: Request) {
   }
 }
 
+/**
+ * POST /api/treatment-plan
+ * Add a treatment item to a visit
+ */
 export async function POST(req: Request) {
   try {
     const session = await getSession();
@@ -70,9 +94,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { patient_id, visit_id, tooth_number, procedure_name, priority, quantity, unit_price, notes } = await req.json();
+    const err = authorize(session, { roles: ['dentist', 'admin'] });
+    if (err) return NextResponse.json({ error: err }, { status: 403 });
 
-    if (!patient_id || !tooth_number || !procedure_name || !priority || unit_price === undefined) {
+    const body = await req.json();
+    const {
+      visit_id, tooth_refs, procedure_name, priority, quantity,
+      unit_price, notes, insurance_claimable, payer_name,
+      lab_job_required
+    } = body;
+
+    if (!visit_id || !procedure_name || !priority || unit_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields for treatment item.' }, { status: 400 });
     }
 
@@ -80,30 +112,39 @@ export async function POST(req: Request) {
 
     const inserted = await sql`
       INSERT INTO treatment_plan_items (
-        id, patient_id, visit_id, tooth_number, procedure_name, priority, quantity, unit_price, notes
+        id, visit_id, tooth_refs, procedure_name, priority, quantity, unit_price,
+        notes, insurance_claimable, payer_name, lab_job_required
       ) VALUES (
         ${id},
-        ${patient_id},
-        ${visit_id || null},
-        ${tooth_number},
+        ${visit_id},
+        ${JSON.stringify(tooth_refs || [])}::jsonb,
         ${procedure_name},
         ${priority},
         ${quantity || 1},
         ${parseFloat(unit_price)},
-        ${notes || ''}
+        ${notes || ''},
+        ${insurance_claimable || false},
+        ${payer_name || null},
+        ${lab_job_required || false}
       )
       RETURNING *
     `;
 
-    // Activity log
+    // Get branch for activity log
+    const visitRows = await sql`SELECT branch_id FROM visits WHERE id = ${visit_id} LIMIT 1`;
+    const branchId = visitRows.length > 0 ? visitRows[0].branch_id : null;
+
     await sql`
-      INSERT INTO activity_logs (id, user_id, user_name, action, details)
+      INSERT INTO activity_logs (id, branch_id, user_id, user_name, action, entity_type, entity_id, details)
       VALUES (
         ${'act_' + Date.now()},
+        ${branchId},
         ${session.id},
         ${session.name},
         'ADD_TREATMENT_ITEM',
-        ${JSON.stringify({ patientId: patient_id, procedure: procedure_name, cost: unit_price, priority })}
+        'treatment_plan_item',
+        ${id},
+        ${JSON.stringify({ procedure: procedure_name, cost: unit_price, priority })}
       )
     `;
 
@@ -114,6 +155,10 @@ export async function POST(req: Request) {
   }
 }
 
+/**
+ * PUT /api/treatment-plan
+ * Update treatment item status, details, or insurance/lab flags
+ */
 export async function PUT(req: Request) {
   try {
     const session = await getSession();
@@ -121,7 +166,12 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
-    const { id, tooth_number, procedure_name, priority, quantity, unit_price, status, notes } = await req.json();
+    const body = await req.json();
+    const {
+      id, tooth_refs, procedure_name, priority, quantity,
+      unit_price, status, notes, insurance_claimable, payer_name,
+      lab_job_required, lab_case_id
+    } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Item ID is required.' }, { status: 400 });
@@ -129,13 +179,17 @@ export async function PUT(req: Request) {
 
     const updated = await sql`
       UPDATE treatment_plan_items
-      SET tooth_number = COALESCE(${tooth_number}, tooth_number),
-          procedure_name = COALESCE(${procedure_name}, procedure_name),
-          priority = COALESCE(${priority}, priority),
+      SET tooth_refs = COALESCE(${tooth_refs ? JSON.stringify(tooth_refs) : null}::jsonb, tooth_refs),
+          procedure_name = COALESCE(${procedure_name || null}, procedure_name),
+          priority = COALESCE(${priority || null}, priority),
           quantity = COALESCE(${quantity ? parseInt(quantity, 10) : null}, quantity),
-          unit_price = COALESCE(${unit_price ? parseFloat(unit_price) : null}, unit_price),
-          status = COALESCE(${status}, status),
-          notes = COALESCE(${notes}, notes)
+          unit_price = COALESCE(${unit_price !== undefined ? parseFloat(unit_price) : null}, unit_price),
+          status = COALESCE(${status || null}, status),
+          notes = COALESCE(${notes || null}, notes),
+          insurance_claimable = COALESCE(${insurance_claimable !== undefined ? insurance_claimable : null}, insurance_claimable),
+          payer_name = COALESCE(${payer_name || null}, payer_name),
+          lab_job_required = COALESCE(${lab_job_required !== undefined ? lab_job_required : null}, lab_job_required),
+          lab_case_id = COALESCE(${lab_case_id || null}, lab_case_id)
       WHERE id = ${id}
       RETURNING *
     `;
@@ -147,6 +201,10 @@ export async function PUT(req: Request) {
   }
 }
 
+/**
+ * DELETE /api/treatment-plan?id=xxx
+ * Remove a treatment item (only proposed/declined items)
+ */
 export async function DELETE(req: Request) {
   try {
     const session = await getSession();
@@ -154,14 +212,20 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
+    const err = authorize(session, { roles: ['dentist', 'admin'] });
+    if (err) return NextResponse.json({ error: err }, { status: 403 });
+
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    await sql`DELETE FROM treatment_plan_items WHERE id = ${id}`;
+    // Only allow deletion of proposed/declined items
+    await sql`
+      DELETE FROM treatment_plan_items
+      WHERE id = ${id} AND status IN ('proposed', 'declined')
+    `;
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

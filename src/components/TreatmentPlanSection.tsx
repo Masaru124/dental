@@ -198,8 +198,71 @@ export default function TreatmentPlanSection({
     .filter((i) => i.priority === 'elective' || i.priority === 'preventive')
     .reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_price), 0);
 
+  const [isGeneratingInvoice, setIsGeneratingInvoice] = useState(false);
+  const [invoiceToast, setInvoiceToast] = useState<string | null>(null);
+
+  const handleGenerateInvoice = async () => {
+    if (items.length === 0) {
+      alert('Please add procedures to the treatment plan first.');
+      return;
+    }
+    setIsGeneratingInvoice(true);
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          custom_items: items.map((i) => ({
+            procedure_name: i.procedure_name,
+            amount: Number(i.quantity) * Number(i.unit_price),
+            treatment_plan_item_id: i.id,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setInvoiceToast(`Invoice #${data.invoice.id} generated successfully!`);
+        setTimeout(() => setInvoiceToast(null), 4000);
+      } else {
+        alert(data.error || 'Failed to generate invoice');
+      }
+    } catch (err) {
+      console.error('Invoice error:', err);
+    } finally {
+      setIsGeneratingInvoice(false);
+    }
+  };
+
   return (
-    <div className="panel-card" style={{ marginTop: '1.5rem' }}>
+    <div className="panel-card" style={{ marginTop: '1.5rem', position: 'relative' }}>
+      {invoiceToast && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '1rem',
+            right: '1rem',
+            background: '#0f172a',
+            color: '#ffffff',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            zIndex: 20,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
+        >
+          <CheckCircle size={14} color="#10b981" />
+          <span>{invoiceToast}</span>
+          <Link href="/billing" style={{ color: '#38bdf8', marginLeft: '6px', textDecoration: 'underline' }}>
+            View Billing &rarr;
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
         <div>
@@ -209,7 +272,19 @@ export default function TreatmentPlanSection({
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleGenerateInvoice}
+            disabled={isGeneratingInvoice || items.length === 0}
+            title="Generate GST Invoice for this Treatment Plan"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <FileDown size={15} />
+            <span>{isGeneratingInvoice ? 'Invoicing...' : 'Generate Invoice'}</span>
+          </button>
+
           <Link
             href={`/patients/${patientId}/presentation`}
             className="btn btn-outline"
