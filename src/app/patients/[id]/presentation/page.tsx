@@ -48,7 +48,7 @@ export default function PatientPresentationPage() {
   const router = useRouter();
   const patientId = params.id as string;
 
-  const [lang, setLang] = useState<'en' | 'hi'>('en');
+  const [lang, setLang] = useState<'en' | 'hi' | 'kn'>('en');
   const [data, setData] = useState<PresentationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -56,7 +56,7 @@ export default function PatientPresentationPage() {
   const [copiedLink, setCopiedLink] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
-  const loadData = async (selectedLang: 'en' | 'hi') => {
+  const loadData = async (selectedLang: 'en' | 'hi' | 'kn') => {
     setLoading(true);
     try {
       const res = await fetch(`/api/presentation/${patientId}?lang=${selectedLang}`);
@@ -126,10 +126,11 @@ export default function PatientPresentationPage() {
 
   if (loading || !data) {
     return (
-      <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', gap: '1rem' }}>
-        <div className="animate-spin" style={{ width: '36px', height: '36px', border: '3px solid #e2e8f0', borderTopColor: '#0284c7', borderRadius: '50%' }} />
-        <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Generating Patient Presentation Case Sheet...</div>
-        <div style={{ fontSize: '12px', color: '#64748b' }}>Formatting bilingual clinical procedures and dental diagram</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="spinner" style={{ width: 40, height: 40, margin: '0 auto 1rem' }} />
+          <p style={{ color: '#64748b' }}>Generating Clinical Treatment Plan Presentation...</p>
+        </div>
       </div>
     );
   }
@@ -142,7 +143,7 @@ export default function PatientPresentationPage() {
 
   const getToothLabel = (toothNumber?: string | null) => {
     if (!toothNumber || toothNumber.toLowerCase() === 'all' || toothNumber === 'undefined') {
-      return lang === 'hi' ? 'संपूर्ण मुख' : 'Full Arch / All';
+      return lang === 'kn' ? 'ಸಂಪೂರ್ಣ ಮುಖ / ಎಲ್ಲಾ ಹಲ್ಲುಗಳು' : lang === 'hi' ? 'संपूर्ण मुख' : 'Full Arch / All';
     }
     return `#${toothNumber}`;
   };
@@ -200,6 +201,7 @@ export default function PatientPresentationPage() {
             </span>
             <button
               type="button"
+              id="presentation-lang-en"
               onClick={() => setLang('en')}
               style={{
                 padding: '4px 10px',
@@ -214,6 +216,7 @@ export default function PatientPresentationPage() {
             </button>
             <button
               type="button"
+              id="presentation-lang-hi"
               onClick={() => setLang('hi')}
               style={{
                 padding: '4px 10px',
@@ -225,6 +228,21 @@ export default function PatientPresentationPage() {
               }}
             >
               हिंदी (Hindi)
+            </button>
+            <button
+              type="button"
+              id="presentation-lang-kn"
+              onClick={() => setLang('kn')}
+              style={{
+                padding: '4px 10px',
+                fontSize: '12px',
+                fontWeight: lang === 'kn' ? 700 : 500,
+                background: lang === 'kn' ? '#0284c7' : 'transparent',
+                color: lang === 'kn' ? '#ffffff' : '#475569',
+                borderRadius: '6px',
+              }}
+            >
+              ಕನ್ನಡ (Kannada)
             </button>
           </div>
 
@@ -325,7 +343,7 @@ export default function PatientPresentationPage() {
                 borderRadius: '4px',
               }}
             >
-              {lang === 'hi' ? 'उपचार योजना एवं अनुमान' : 'Patient Care Plan & Estimate'}
+              {lang === 'kn' ? 'ಚಿಕಿತ್ಸಾ ಯೋಜನೆ ಮತ್ತು ವೆಚ್ಚದ ಅಂದಾಜು' : lang === 'hi' ? 'उपचार योजना एवं अनुमान' : 'Patient Care Plan & Estimate'}
             </span>
             <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px' }}>
               Date: {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -348,13 +366,13 @@ export default function PatientPresentationPage() {
         >
           <div>
             <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-              {lang === 'hi' ? 'मरीज का नाम' : 'Patient Name'}
+              {lang === 'kn' ? 'ರೋಗಿಯ ಹೆಸರು' : lang === 'hi' ? 'मरीज का नाम' : 'Patient Name'}
             </span>
             <div style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>{data.patient.name}</div>
           </div>
           <div>
             <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-              {lang === 'hi' ? 'आयु एवं लिंग' : 'Age & Gender'}
+              {lang === 'kn' ? 'ವಯಸ್ಸು ಮತ್ತು ಲಿಂಗ' : lang === 'hi' ? 'आयु एवं लिंग' : 'Age & Gender'}
             </span>
             <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
               {data.patient.age} Yrs / {data.patient.gender}
@@ -362,13 +380,13 @@ export default function PatientPresentationPage() {
           </div>
           <div>
             <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-              {lang === 'hi' ? 'फोन नंबर' : 'Phone'}
+              {lang === 'kn' ? 'ದೂರವಾಣಿ' : lang === 'hi' ? 'फोन नंबर' : 'Phone'}
             </span>
             <div style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>{data.patient.phone}</div>
           </div>
           <div>
             <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-              {lang === 'hi' ? 'मरीज आईडी' : 'Patient ID'}
+              {lang === 'kn' ? 'ರೋಗಿ ಐಡಿ' : lang === 'hi' ? 'मरीज आईडी' : 'Patient ID'}
             </span>
             <div style={{ fontSize: '13px', fontFamily: 'monospace', color: '#0284c7', fontWeight: 600 }}>
               {data.patient.id}
@@ -379,10 +397,12 @@ export default function PatientPresentationPage() {
         {/* Section 1: Visual Dental Chart */}
         <div style={{ marginBottom: '1.75rem' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
-            {lang === 'hi' ? '१. आपके दांतों की वर्तमान स्थिति (दंत चार्ट)' : '1. Your Dental Health Overview (Chart)'}
+            {lang === 'kn' ? '೧. ನಿಮ್ಮ ಹಲ್ಲುಗಳ ಪ್ರಸ್ತುತ ಸ್ಥಿತಿ (ಡೆಂಟಲ್ ಚಾರ್ಟ್)' : lang === 'hi' ? '१. आपके दांतों की वर्तमान स्थिति (दंत चार्ट)' : '1. Your Dental Health Overview (Chart)'}
           </h2>
           <p style={{ fontSize: '13px', color: '#475569', marginBottom: '0.75rem' }}>
-            {lang === 'hi'
+            {lang === 'kn'
+              ? 'ಕೆಳಗಿನ ಚಾರ್ಟ್ ನಿಮ್ಮ ತಪಾಸಣೆಯ ಸಮಯದಲ್ಲಿ ಗುರುತಿಸಲಾದ ಹಲ್ಲುಗಳ ಸ್ಥಿತಿಯನ್ನು ತೋರಿಸುತ್ತದೆ:'
+              : lang === 'hi'
               ? 'नीचे दिए गए चार्ट में आपके मुंह की जांच के दौरान पाए गए दांतों की स्थिति दर्शायी गई है:'
               : 'The anatomical chart below highlights areas identified during your comprehensive examination:'}
           </p>
@@ -398,12 +418,12 @@ export default function PatientPresentationPage() {
         {/* Section 2: Clinical Findings Explained Simply */}
         <div style={{ marginBottom: '1.75rem' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
-            {lang === 'hi' ? '२. जांच के मुख्य निष्कर्ष (सरल भाषा में)' : '2. Key Findings Explained in Plain Words'}
+            {lang === 'kn' ? '೨. ತಪಾಸಣೆಯ ಮುಖ್ಯ ವಿವರಗಳು (ಸರಳ ವಿವರಣೆ)' : lang === 'hi' ? '२. जांच के मुख्य निष्कर्ष (सरल भाषा में)' : '2. Key Findings Explained in Plain Words'}
           </h2>
 
           {data.findings.length === 0 ? (
             <div style={{ padding: '0.75rem', background: '#ecfdf5', borderRadius: '6px', color: '#065f46', fontSize: '13px' }}>
-              ✓ {lang === 'hi' ? 'सभी दांत पूरी तरह स्वस्थ और मजबूत हैं!' : 'All teeth are clean, sound, and healthy!'}
+              ✓ {lang === 'kn' ? 'ಎಲ್ಲಾ ಹಲ್ಲುಗಳು ಸಂಪೂರ್ಣ ಆರೋಗ್ಯಕರ ಮತ್ತು ಸದೃಢವಾಗಿವೆ!' : lang === 'hi' ? 'सभी दांत पूरी तरह स्वस्थ और मजबूत हैं!' : 'All teeth are clean, sound, and healthy!'}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.75rem' }}>
@@ -448,7 +468,7 @@ export default function PatientPresentationPage() {
         {/* Section 3: Recommended Treatment Plan & Costs */}
         <div style={{ marginBottom: '2rem' }}>
           <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#0f172a', marginBottom: '0.5rem' }}>
-            {lang === 'hi' ? '३. प्रस्तावित उपचार योजना एवं खर्च' : '3. Recommended Treatment Plan & Transparent Costing'}
+            {lang === 'kn' ? '೩. ಶಿಫಾರಸು ಮಾಡಲಾದ ಚಿಕಿತ್ಸಾ ಯೋಜನೆ ಮತ್ತು ವೆಚ್ಚದ ವಿವರ' : lang === 'hi' ? '३. प्रस्तावित उपचार योजना एवं खर्च' : '3. Recommended Treatment Plan & Transparent Costing'}
           </h2>
 
           {/* Urgent Phase */}
@@ -471,16 +491,16 @@ export default function PatientPresentationPage() {
               >
                 <AlertCircle size={16} />
                 <span>
-                  {lang === 'hi' ? 'चरण १: तुरंत आवश्यक उपचार (दर्द या संक्रमण से बचाव)' : 'Phase 1: Immediate Priority (Urgent)'}
+                  {lang === 'kn' ? 'ಹಂತ ೧: ತಕ್ಷಣದ ಅಗತ್ಯ ಚಿಕಿತ್ಸೆ (ನೋವು ಅಥವಾ ಸೋಂಕು ತಡೆ)' : lang === 'hi' ? 'चरण १: तुरंत आवश्यक उपचार (दर्द या संक्रमण से बचाव)' : 'Phase 1: Immediate Priority (Urgent)'}
                 </span>
               </div>
               <table className="clinical-table" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
                 <thead>
                   <tr>
-                    <th>{lang === 'hi' ? 'दांत' : 'Tooth'}</th>
-                    <th>{lang === 'hi' ? 'उपचार प्रक्रिया' : 'Procedure'}</th>
-                    <th>{lang === 'hi' ? 'मात्रा' : 'Qty'}</th>
-                    <th>{lang === 'hi' ? 'अनुमानित शुल्क' : 'Fee (₹)'}</th>
+                    <th>{lang === 'kn' ? 'ಹಲ್ಲು' : lang === 'hi' ? 'दांत' : 'Tooth'}</th>
+                    <th>{lang === 'kn' ? 'ಚಿಕಿತ್ಸಾ ವಿಧಾನ' : lang === 'hi' ? 'उपचार प्रक्रिया' : 'Procedure'}</th>
+                    <th>{lang === 'kn' ? 'ಪ್ರಮಾಣ' : lang === 'hi' ? 'मात्रा' : 'Qty'}</th>
+                    <th>{lang === 'kn' ? 'ಅಂದಾಜು ಶುಲ್ಕ (₹)' : lang === 'hi' ? 'अनुमानित शुल्क' : 'Fee (₹)'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -520,16 +540,16 @@ export default function PatientPresentationPage() {
               >
                 <Calendar size={16} />
                 <span>
-                  {lang === 'hi' ? 'चरण २: अगले २-४ हफ्तों में कराने योग्य उपचार' : 'Phase 2: Recommended within 2-4 Weeks'}
+                  {lang === 'kn' ? 'ಹಂತ ೨: ಮುಂದಿನ ೨-೪ ವಾರಗಳಲ್ಲಿ ಮಾಡಿಸಬಹುದಾದ ಚಿಕಿತ್ಸೆ' : lang === 'hi' ? 'चरण २: अगले २-४ हफ्तों में कराने योग्य उपचार' : 'Phase 2: Recommended within 2-4 Weeks'}
                 </span>
               </div>
               <table className="clinical-table" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
                 <thead>
                   <tr>
-                    <th>{lang === 'hi' ? 'दांत' : 'Tooth'}</th>
-                    <th>{lang === 'hi' ? 'उपचार प्रक्रिया' : 'Procedure'}</th>
-                    <th>{lang === 'hi' ? 'मात्रा' : 'Qty'}</th>
-                    <th>{lang === 'hi' ? 'अनुमानित शुल्क' : 'Fee (₹)'}</th>
+                    <th>{lang === 'kn' ? 'ಹಲ್ಲು' : lang === 'hi' ? 'दांत' : 'Tooth'}</th>
+                    <th>{lang === 'kn' ? 'ಚಿಕಿತ್ಸಾ ವಿಧಾನ' : lang === 'hi' ? 'उपचार प्रक्रिया' : 'Procedure'}</th>
+                    <th>{lang === 'kn' ? 'ಪ್ರಮಾಣ' : lang === 'hi' ? 'मात्रा' : 'Qty'}</th>
+                    <th>{lang === 'kn' ? 'ಅಂದಾಜು ಶುಲ್ಕ (₹)' : lang === 'hi' ? 'अनुमानित शुल्क' : 'Fee (₹)'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -569,16 +589,16 @@ export default function PatientPresentationPage() {
               >
                 <CheckCircle2 size={16} />
                 <span>
-                  {lang === 'hi' ? 'चरण ३: नियमित रोकथाम व रखरखाव' : 'Phase 3: Preventive Care & Maintenance'}
+                  {lang === 'kn' ? 'ಹಂತ ೩: ನಿಯಮಿತ ದಂತ ರಕ್ಷಣೆ ಮತ್ತು ನಿರ್ವಹಣೆ' : lang === 'hi' ? 'चरण ३: नियमित रोकथाम व रखरखाव' : 'Phase 3: Preventive Care & Maintenance'}
                 </span>
               </div>
               <table className="clinical-table" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
                 <thead>
                   <tr>
-                    <th>{lang === 'hi' ? 'दांत' : 'Tooth'}</th>
-                    <th>{lang === 'hi' ? 'उपचार प्रक्रिया' : 'Procedure'}</th>
-                    <th>{lang === 'hi' ? 'मात्रा' : 'Qty'}</th>
-                    <th>{lang === 'hi' ? 'अनुमानित शुल्क' : 'Fee (₹)'}</th>
+                    <th>{lang === 'kn' ? 'ಹಲ್ಲು' : lang === 'hi' ? 'दांत' : 'Tooth'}</th>
+                    <th>{lang === 'kn' ? 'ಚಿಕಿತ್ಸಾ ವಿಧಾನ' : lang === 'hi' ? 'उपचार प्रक्रिया' : 'Procedure'}</th>
+                    <th>{lang === 'kn' ? 'ಪ್ರಮಾಣ' : lang === 'hi' ? 'मात्रा' : 'Qty'}</th>
+                    <th>{lang === 'kn' ? 'ಅಂದಾಜು ಶುಲ್ಕ (₹)' : lang === 'hi' ? 'अनुमानित शुल्क' : 'Fee (₹)'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -613,10 +633,10 @@ export default function PatientPresentationPage() {
           >
             <div>
               <div style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>
-                {lang === 'hi' ? 'कुल अनुमानित उपचार लागत' : 'Total Estimated Treatment Cost'}
+                {lang === 'kn' ? 'ಒಟ್ಟು ಅಂದಾಜು ಚಿಕಿತ್ಸಾ ವೆಚ್ಚ' : lang === 'hi' ? 'कुल अनुमानित उपचार लागत' : 'Total Estimated Treatment Cost'}
               </div>
               <div style={{ fontSize: '12px', color: '#38bdf8', marginTop: '2px' }}>
-                {lang === 'hi' ? '*चरणबद्ध किश्तों में भुगतान की सुविधा उपलब्ध' : '*Flexible phased payment options available'}
+                {lang === 'kn' ? '*ಹಂತ ಹಂತವಾಗಿ ಸುಲಭ ಕಂತುಗಳಲ್ಲಿ ಪಾವತಿಸುವ ಸೌಲಭ್ಯ ಲಭ್ಯವಿದೆ' : lang === 'hi' ? '*चरणबद्ध किश्तों में भुगतान की सुविधा उपलब्ध' : '*Flexible phased payment options available'}
               </div>
             </div>
             <div style={{ fontSize: '26px', fontWeight: 800, color: '#ffffff' }}>
@@ -637,7 +657,9 @@ export default function PatientPresentationPage() {
           }}
         >
           <div style={{ fontSize: '11px', color: '#64748b', maxWidth: '400px' }}>
-            {lang === 'hi'
+            {lang === 'kn'
+              ? 'ಈ ಚಿಕಿತ್ಸಾ ಯೋಜನೆಯು ನಿಮ್ಮ ದಂತ ತಪಾಸಣೆಯನ್ನು ಆಧರಿಸಿದೆ. ಯಾವುದೇ ಪ್ರಶ್ನೆಗಳು ಅಥವಾ ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್‌ಗಾಗಿ ದಯವಿಟ್ಟು ಕ್ಲಿನಿಕ್ ಅನ್ನು ಸಂಪರ್ಕಿಸಿ.'
+              : lang === 'hi'
               ? 'यह उपचार योजना आपकी नैदानिक जांच पर आधारित है। किसी भी सवाल या समय निर्धारण के लिए कृपया क्लिनिक से संपर्क करें।'
               : 'This treatment plan is customized based on your clinical assessment. For queries or appointments, call our desk directly.'}
           </div>

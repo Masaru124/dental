@@ -49,7 +49,7 @@ export async function PUT(req: Request) {
     if (err) return NextResponse.json({ error: err }, { status: 403 });
 
     const body = await req.json();
-    const { id, default_cost, procedure_name, category, patient_friendly_en, patient_friendly_hi, hsn_sac_code, tax_rate_percent } = body;
+    const { id, default_cost, procedure_name, category, patient_friendly_en, patient_friendly_hi, patient_friendly_kn, hsn_sac_code, tax_rate_percent } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Procedure ID is required' }, { status: 400 });
@@ -62,6 +62,7 @@ export async function PUT(req: Request) {
           category = COALESCE(${category || null}, category),
           patient_friendly_en = COALESCE(${patient_friendly_en || null}, patient_friendly_en),
           patient_friendly_hi = COALESCE(${patient_friendly_hi || null}, patient_friendly_hi),
+          patient_friendly_kn = COALESCE(${patient_friendly_kn || null}, patient_friendly_kn),
           hsn_sac_code = COALESCE(${hsn_sac_code || null}, hsn_sac_code),
           tax_rate_percent = COALESCE(${tax_rate_percent !== undefined ? parseFloat(tax_rate_percent) : null}, tax_rate_percent)
       WHERE id = ${id}
@@ -109,7 +110,7 @@ export async function POST(req: Request) {
     if (err) return NextResponse.json({ error: err }, { status: 403 });
 
     const body = await req.json();
-    const { code, procedure_name, category, default_cost, patient_friendly_en, patient_friendly_hi, branch_id, hsn_sac_code, tax_rate_percent } = body;
+    const { code, procedure_name, category, default_cost, patient_friendly_en, patient_friendly_hi, patient_friendly_kn, branch_id, hsn_sac_code, tax_rate_percent } = body;
 
     if (!code || !procedure_name || default_cost === undefined) {
       return NextResponse.json({ error: 'Code, procedure name, and fee are required' }, { status: 400 });
@@ -119,7 +120,7 @@ export async function POST(req: Request) {
     const targetBranch = branch_id || (session.branchIds.includes('*') ? null : session.branchIds[0]);
 
     const inserted = await sql`
-      INSERT INTO price_list (id, branch_id, code, procedure_name, category, default_cost, hsn_sac_code, tax_rate_percent, patient_friendly_en, patient_friendly_hi)
+      INSERT INTO price_list (id, branch_id, code, procedure_name, category, default_cost, hsn_sac_code, tax_rate_percent, patient_friendly_en, patient_friendly_hi, patient_friendly_kn)
       VALUES (
         ${id},
         ${targetBranch},
@@ -130,7 +131,8 @@ export async function POST(req: Request) {
         ${hsn_sac_code || '999312'},
         ${tax_rate_percent !== undefined ? parseFloat(tax_rate_percent) : 18.00},
         ${patient_friendly_en || procedure_name},
-        ${patient_friendly_hi || procedure_name}
+        ${patient_friendly_hi || procedure_name},
+        ${patient_friendly_kn || procedure_name}
       )
       RETURNING *
     `;

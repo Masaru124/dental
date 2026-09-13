@@ -109,7 +109,7 @@ test.describe('DentOS v2 Comprehensive End-to-End Test Suite', () => {
 
   test('08: Clinical Supplies Inventory', async ({ page }) => {
     await page.goto('http://localhost:3000/inventory');
-    await expect(page.locator('h1')).toContainText('Clinical Inventory & Supplies');
+    await expect(page.locator('h1')).toContainText('Clinical Inventory');
     await expect(page.locator('button:has-text("Add Stock Item")')).toBeVisible();
   });
 
@@ -723,6 +723,230 @@ test.describe('DentOS v2 Comprehensive End-to-End Test Suite', () => {
     // Close Modal
     await page.locator('#close-stl-modal-btn').click();
     await expect(stlModal).not.toBeVisible();
+  });
+
+  test('25: NABH 5th Edition Infection Control Autoclave Log & Implant Lot Expiry Vault', async ({ page }) => {
+    await page.goto('http://localhost:3000/inventory');
+    await expect(page.locator('h1')).toContainText('Clinical Inventory', { timeout: 15000 });
+
+    // 1. Switch to NABH 5th Edition Sterilization Log Tab
+    const nabhTab = page.locator('#tab-nabh-sterilization');
+    await expect(nabhTab).toBeVisible();
+    await nabhTab.click();
+
+    // Verify NABH Infection Control Section
+    await expect(page.locator('text=NABH 5TH EDITION COMPLIANT')).toBeVisible();
+    await expect(page.locator('text=Euronda Class B Pro').first()).toBeVisible();
+    await expect(page.locator('text=134.4°C').first()).toBeVisible();
+    await expect(page.locator('text=Spore Negative (24h PASS)').first()).toBeVisible();
+
+    // Test Export NABH CSV
+    const exportNabhBtn = page.locator('#export-nabh-audit-log-btn');
+    await expect(exportNabhBtn).toBeVisible();
+    const [downloadNabh] = await Promise.all([
+      page.waitForEvent('download'),
+      exportNabhBtn.click(),
+    ]);
+    expect(downloadNabh.suggestedFilename()).toContain('NABH');
+
+    // Test Log New Autoclave Cycle
+    const logCycleBtn = page.locator('#log-autoclave-cycle-btn');
+    await expect(logCycleBtn).toBeVisible();
+    await logCycleBtn.click();
+
+    await expect(page.locator('text=Log NABH Class B Autoclave Cycle')).toBeVisible();
+    await page.locator('button:has-text("Confirm & Validate Cycle")').click();
+
+    // Verify cycle logged
+    await expect(page.locator('text=134.5°C').first()).toBeVisible();
+
+    // 2. Switch to Implant & Bone Graft Lot Expiry Vault Tab
+    const implantTab = page.locator('#tab-implant-vault');
+    await expect(implantTab).toBeVisible();
+    await implantTab.click();
+
+    await expect(page.locator('text=HIGH-VALUE TRACEABILITY VAULT')).toBeVisible();
+    await expect(page.locator('text=Roxolid BLX SLActive Implant')).toBeVisible();
+    await expect(page.locator('text=NobelActive TiUltra Conical')).toBeVisible();
+    await expect(page.locator('text=Bio-Oss Granules')).toBeVisible();
+
+    // Verify Expiry warnings
+    await expect(page.locator('text=14 Days Left')).toBeVisible();
+
+    // Test Quarantine Toggle Lock
+    const quarantineBtn = page.locator('#quarantine-btn-imp_01');
+    await expect(quarantineBtn).toBeVisible();
+    await quarantineBtn.click();
+
+    // Verify status updated to QUARANTINED
+    await expect(page.locator('text=QUARANTINED').first()).toBeVisible();
+
+    // Release lock
+    await quarantineBtn.click();
+    await expect(page.locator('text=NEAR EXPIRY').first()).toBeVisible();
+  });
+
+  test('26: CDSCO Schedule H1 Antibiotic Stewardship & Drug Allergy Safety Engine', async ({ page }) => {
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
+
+    await page.goto('http://localhost:3000/patients/pat_sneha_102');
+    await expect(page.locator('h1')).toContainText('Sneha Kulkarni', { timeout: 15000 });
+    await page.waitForLoadState('networkidle');
+
+    // Open CDSCO e-Rx & Safety Modal
+    const openErxBtn = page.locator('#open-erx-safety-btn');
+    await expect(openErxBtn).toBeVisible();
+    await openErxBtn.click();
+
+    const erxModal = page.locator('#erx-safety-modal');
+    await expect(erxModal).toBeVisible();
+    await expect(page.locator('text=CDSCO Antibiotic Stewardship & e-Prescription')).toBeVisible();
+
+    // 1. Verify Documented Allergies Box
+    await expect(page.locator('text=Documented Medical Allergies:')).toBeVisible();
+
+    // 2. Verify Fatal Allergy Contraindication Banner for Augmentin
+    const allergyBanner = page.locator('#allergy-conflict-banner');
+    await expect(allergyBanner).toBeVisible();
+    await expect(allergyBanner).toContainText('FATAL ALLERGY CONTRAINDICATION: PENICILLIN HYPERSENSITIVITY');
+    await expect(allergyBanner).toContainText('Clindamycin 300mg');
+
+    // 3. Verify Schedule H1 statutory notice
+    const h1Warning = page.locator('#schedule-h1-warning');
+    await expect(h1Warning).toBeVisible();
+    await expect(h1Warning).toContainText('Govt of India Notification G.S.R. 588(E)');
+
+    // 4. Verify Send button is disabled due to fatal conflict
+    const sendBtn = page.locator('#send-rx-whatsapp-btn');
+    await expect(sendBtn).toBeDisabled();
+
+    // 5. Test Medical Director Override
+    const overrideCheckbox = page.locator('#allergy-override-checkbox');
+    await expect(overrideCheckbox).toBeVisible();
+    await overrideCheckbox.check();
+
+    // Now send button should become enabled
+    await expect(sendBtn).toBeEnabled();
+
+    // 6. Test Export Schedule H1 Register CSV
+    const exportH1Btn = page.locator('#export-schedule-h1-btn');
+    await expect(exportH1Btn).toBeVisible();
+    const [downloadH1] = await Promise.all([
+      page.waitForEvent('download'),
+      exportH1Btn.click(),
+    ]);
+    expect(downloadH1.suggestedFilename()).toContain('Schedule_H1');
+
+    // 7. Test Send Rx via WhatsApp
+    await sendBtn.click();
+    await expect(erxModal).not.toBeVisible();
+    await expect(page.locator('text=Prescription dispatched via WhatsApp')).toBeVisible();
+  });
+
+  test('27: Enterprise Hospital Lifetime License Commercial Proposal & ROI Calculator', async ({ page }) => {
+    await page.goto('http://localhost:3000/pricing');
+    await expect(page.locator('h1')).toContainText('Clinical Fee Schedule', { timeout: 15000 });
+
+    // 1. Switch to Enterprise Hospital Tab
+    const enterpriseTab = page.locator('#pricing-tab-enterprise');
+    await expect(enterpriseTab).toBeVisible();
+    await enterpriseTab.click();
+
+    await expect(page.locator('text=ENTERPRISE HOSPITAL COMMERCIAL SUITE')).toBeVisible();
+    await expect(page.locator('text=Multi-Chair Hospital Lifetime License')).toBeVisible();
+
+    // 2. Test Interactive Chair Slider
+    const slider = page.locator('#hospital-chair-slider');
+    await expect(slider).toBeVisible();
+    await slider.fill('15');
+
+    const chairDisplay = page.locator('#chair-count-display');
+    await expect(chairDisplay).toContainText('15 Operatory Chairs');
+
+    // Capex for 15 chairs should be 15 * 45,000 = ₹6,75,000
+    await expect(page.locator('text=₹6,75,000')).toBeVisible();
+
+    // 3. Test Commercial Model Switcher: SaaS vs Perpetual
+    const saasCard = page.locator('#license-model-saas');
+    await expect(saasCard).toBeVisible();
+    await saasCard.click();
+
+    // SaaS for 15 chairs should be 15 * 28,800 = ₹4,32,000
+    await expect(page.locator('text=₹4,32,000')).toBeVisible();
+
+    // Switch back to Perpetual
+    await page.locator('#license-model-perpetual').click();
+
+    // 4. Test Generate Executive Proposal
+    const genBtn = page.locator('#generate-hospital-proposal-btn');
+    await expect(genBtn).toBeVisible();
+    await genBtn.click();
+
+    const proposalDoc = page.locator('#enterprise-proposal-document');
+    await expect(proposalDoc).toBeVisible();
+    await expect(proposalDoc).toContainText('COMMERCIAL QUOTATION & EXECUTIVE MEMORANDUM');
+    await expect(proposalDoc).toContainText('Manipal Dental Super-Specialty Hospital');
+    await expect(proposalDoc).toContainText('15 Operatory Dental Chairs');
+    await expect(proposalDoc).toContainText('99.95% System Uptime SLA');
+    await expect(proposalDoc).toContainText('Milestone Payment Schedule');
+
+    // 5. Test Download Commercial CSV
+    const downloadCsvBtn = page.locator('#download-proposal-csv-btn');
+    await expect(downloadCsvBtn).toBeVisible();
+    const [downloadProp] = await Promise.all([
+      page.waitForEvent('download'),
+      downloadCsvBtn.click(),
+    ]);
+    expect(downloadProp.suggestedFilename()).toContain('Commercial_Proposal');
+  });
+
+  test('28: Multi-Lingual Kannada (ಕನ್ನಡ) Language Support Across Patient Presentation, 3D Portal & Fee Schedule', async ({ page }) => {
+    // 1. Verify Kannada in Patient Presentation View (/patients/pat_aarav_101/presentation)
+    await page.goto('http://localhost:3000/patients/pat_aarav_101/presentation');
+    const presentationLangKn = page.locator('#presentation-lang-kn');
+    await expect(presentationLangKn).toBeVisible({ timeout: 15000 });
+    await presentationLangKn.click();
+
+    // Verify Kannada translations rendered in presentation
+    await expect(page.locator('text=ಚಿಕಿತ್ಸಾ ಯೋಜನೆ ಮತ್ತು ವೆಚ್ಚದ ಅಂದಾಜು')).toBeVisible();
+    await expect(page.locator('text=ರೋಗಿಯ ಹೆಸರು')).toBeVisible();
+    await expect(page.locator('text=ಹಂತ ೧: ತಕ್ಷಣದ ಅಗತ್ಯ ಚಿಕಿತ್ಸೆ')).toBeVisible();
+
+    // 2. Verify Kannada in Patient 3D Plan & Share Portal (/plan/pat_aarav_101)
+    await page.goto('http://localhost:3000/plan/pat_aarav_101');
+    await expect(page.locator('#portal-lang-kn')).toBeVisible({ timeout: 15000 });
+
+    // Switch to Kannada via #portal-lang-kn
+    await page.locator('#portal-lang-kn').click();
+
+    // Verify 72-Hour Price Guarantee in Kannada
+    await expect(page.locator('text=🔒 ೭೨ ಗಂಟೆಗಳ ಬೆಲೆ ಗ್ಯಾರಂಟಿ')).toBeVisible();
+    await expect(page.locator('text=ಗ್ಯಾರಂಟಿ ಶುಲ್ಕವನ್ನು ಕಾಯ್ದಿರಿಸಿ')).toBeVisible();
+
+    // Verify Greeting and Visualizer in Kannada
+    await expect(page.locator('text=ಸುಸ್ವಾಗತ')).toBeVisible();
+    await expect(page.locator('text=ಹಲ್ಲುಗಳ ೩ಡಿ ಮಾದರಿ ಪರಿಶೀಲನೆ')).toBeVisible();
+
+    // Verify 3D Disease Progression & Delay Penalty Simulator in Kannada
+    await expect(page.locator('text=೩ಡಿ ರೋಗ ಉಲ್ಬಣ ಮತ್ತು ವಿಳಂಬ ವೆಚ್ಚ ಸಿಮ್ಯುಲೇಟರ್')).toBeVisible();
+    await expect(page.locator('#stage-btn-today')).toContainText('ಇಂದು');
+    await expect(page.locator('#stage-btn-6mo')).toContainText('+೬ ತಿಂಗಳು');
+    await expect(page.locator('#stage-btn-12mo')).toContainText('+೧೨ ತಿಂಗಳು');
+
+    // Switch simulator stage to +6 Months and check Kannada breakdown
+    await page.locator('#stage-btn-6mo').click();
+    await expect(page.locator('text=ವಿಳಂಬ ವೆಚ್ಚದ ನಷ್ಟ')).toBeVisible();
+
+    // Verify Medico-Legal e-Consent trigger in Kannada
+    const consentBtn = page.locator('#open-consent-btn');
+    await expect(consentBtn).toBeVisible();
+    await expect(consentBtn).toContainText('ವೈದ್ಯಕೀಯ-ಕಾನೂನು ಒಪ್ಪಿಗೆ ಪತ್ರಕ್ಕೆ ಡಿಜಿಟಲ್ ಸಹಿ ಮಾಡಿ');
+
+    // 3. Verify Fee Schedule Kannada Column (/pricing)
+    await page.goto('http://localhost:3000/pricing');
+    await expect(page.locator('h1')).toContainText('Clinical Fee Schedule', { timeout: 15000 });
+    await expect(page.locator('text=Patient Explanation (Kannada / ಕನ್ನಡ)')).toBeVisible();
   });
 
 });

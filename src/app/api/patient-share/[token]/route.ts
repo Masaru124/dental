@@ -25,20 +25,51 @@ export async function GET(
       phone: '+91 80 4123 4567',
     };
 
+    const KANNADA_TERMS: Record<string, string> = {
+      caries: 'ಹಲ್ಲಿನ ಹುಳುಕು / ಸವೆತ (ಕ್ಯಾವಿಟಿ)',
+      filling: 'ಹಲ್ಲಿನ ಸಿಮೆಂಟಿಂಗ್ / ಫಿಲ್ಲಿಂಗ್',
+      crown: 'ಹಲ್ಲಿನ ಕ್ಯಾಪ್ / ಕಿರೀಟ (ಕ್ರೌನ್)',
+      missing: 'ಕಾಣೆಯಾದ / ತೆಗೆದ ಹಲ್ಲು',
+      healthy: 'ಸಂಪೂರ್ಣ ಆರೋಗ್ಯಕರ ಹಲ್ಲು',
+      urgent: 'ತಕ್ಷಣದ ಅಗತ್ಯ ಚಿಕಿತ್ಸೆ (ನೋವು / ಸೋಂಕು ತಡೆ)',
+      soon: 'ಮುಂದಿನ ೨-೪ ವಾರಗಳಲ್ಲಿ ಮಾಡಿಸಬಹುದಾದ ಚಿಕಿತ್ಸೆ',
+      preventive: 'ನಿಯಮಿತ ದಂತ ರಕ್ಷಣೆ ಮತ್ತು ನಿರ್ವಹಣೆ',
+      elective: 'ಸೌಂದರ್ಯ ವರ್ಧಕ ಚಿಕಿತ್ಸೆ',
+    };
+
+    const KANNADA_PROCEDURES: Record<string, string> = {
+      'Composite Restoration': 'ನೈಸರ್ಗಿಕ ಹಲ್ಲಿನ ಬಣ್ಣದ ಕಾಂಪೋಸಿಟ್ ಫಿಲ್ಲಿಂಗ್',
+      'Root Canal Treatment (RCT)': 'ನೈಸರ್ಗಿಕ ಹಲ್ಲು ಉಳಿಸುವ ರೋಟರಿ ರೂಟ್ ಕೆನಾಲ್ ಚಿಕಿತ್ಸೆ',
+      'Zirconia Crown': 'ದೀರ್ಘಕಾಲ ಬಾಳಿಕೆ ಬರುವ ಪ್ರೀಮಿಯಂ ಜಿರ್ಕೋನಿಯಾ ಹಲ್ಲಿನ ಕ್ಯಾಪ್',
+      'Dental Implant': 'ಟೈಟಾನಿಯಂ ದಂತ ಇಂಪ್ಲಾಂಟ್ (ಕೃತಕ ಬೇರು)',
+      'Scaling & Polishing': 'ಅಲ್ಟ್ರಾಸಾನಿಕ್ ಹಲ್ಲುಗಳ ಸ್ವಚ್ಛತೆ ಮತ್ತು ಪಾಲಿಶ್',
+      'Surgical Extraction': 'ನೋವಿಲ್ಲದ ದವಡೆ ಹಲ್ಲು ಹೊರತೆಗೆಯುವಿಕೆ',
+      'Tooth Extraction': 'ಸುಲಭ ಹಲ್ಲು ಕೀಳುವಿಕೆ',
+      'Teeth Whitening': 'ವೃತ್ತಿಪರ ಲೇಸರ್ ಹಲ್ಲು ಬೆಳ್ಳಗಾಗಿಸುವ ಚಿಕಿತ್ಸೆ',
+      'Orthodontic Consultation': 'ಹಲ್ಲುಗಳ ಜೋಡಣೆ ಮತ್ತು ಕ್ಲಿಪ್ ತಪಾಸಣೆ',
+      'Panoramic OPG X-Ray': 'ಪೂರ್ಣ ಮುಖದ ಡಿಜಿಟಲ್ ಪನೋರಮಿಕ್ ಎಕ್ಸ್-ರೇ',
+      'Dental IOPA X-Ray': 'ಕಡಿಮೆ ವಿಕಿರಣದ ಡಿಜಿಟಲ್ ಐಒಪಿಎ ಎಕ್ಸ್-ರೇ',
+    };
+
     // 3. Fetch translations
     const translationsRows = await sql`SELECT * FROM translations`;
-    const transMap: Record<string, { en: string; hi: string }> = {};
+    const transMap: Record<string, { en: string; hi: string; kn: string }> = {};
     for (const t of translationsRows) {
-      transMap[t.clinical_term] = { en: t.friendly_en, hi: t.friendly_hi };
+      transMap[t.clinical_term] = {
+        en: t.friendly_en,
+        hi: t.friendly_hi,
+        kn: t.friendly_kn || KANNADA_TERMS[t.clinical_term] || t.friendly_en,
+      };
     }
 
     // 4. Fetch price list for metadata
     const priceListRows = await sql`SELECT * FROM price_list`;
-    const priceMap: Record<string, { en: string; hi: string; category: string }> = {};
+    const priceMap: Record<string, { en: string; hi: string; kn: string; category: string }> = {};
     for (const p of priceListRows) {
       priceMap[p.procedure_name] = {
         en: p.patient_friendly_en,
         hi: p.patient_friendly_hi,
+        kn: p.patient_friendly_kn || KANNADA_PROCEDURES[p.procedure_name] || p.patient_friendly_en,
         category: p.category,
       };
     }
@@ -65,7 +96,11 @@ export async function GET(
     const findings = toothRecords
       .filter((t: any) => t.condition !== 'healthy')
       .map((t: any) => {
-        const condMeta = transMap[t.condition] || { en: t.condition, hi: t.condition };
+        const condMeta = transMap[t.condition] || {
+          en: t.condition,
+          hi: t.condition,
+          kn: KANNADA_TERMS[t.condition] || t.condition,
+        };
         return {
           toothNumber: t.tooth_number,
           clinicalCondition: t.condition,
@@ -73,6 +108,7 @@ export async function GET(
           notes: t.notes,
           friendlyDescription_en: condMeta.en,
           friendlyDescription_hi: condMeta.hi,
+          friendlyDescription_kn: condMeta.kn,
         };
       });
 
@@ -96,7 +132,11 @@ export async function GET(
     let grandTotal = 0;
     const formattedPlan = planItems.map((item: any) => {
       const procInfo = priceMap[item.procedure_name];
-      const prioMeta = transMap[item.priority] || { en: item.priority, hi: item.priority };
+      const prioMeta = transMap[item.priority] || {
+        en: item.priority,
+        hi: item.priority,
+        kn: KANNADA_TERMS[item.priority] || item.priority,
+      };
       const toothRefs = item.tooth_refs || [];
       const toothNumber = toothRefs.length > 0 ? toothRefs[0] : 'all';
       const itemTotal = Number(item.quantity) * Number(item.unit_price);
@@ -109,10 +149,12 @@ export async function GET(
         procedureName: item.procedure_name,
         friendlyProcedureName_en: procInfo ? procInfo.en : item.procedure_name,
         friendlyProcedureName_hi: procInfo ? procInfo.hi : item.procedure_name,
+        friendlyProcedureName_kn: procInfo ? procInfo.kn : (KANNADA_PROCEDURES[item.procedure_name] || item.procedure_name),
         category: procInfo ? procInfo.category : 'General',
         priority: item.priority,
         friendlyPriority_en: prioMeta.en,
         friendlyPriority_hi: prioMeta.hi,
+        friendlyPriority_kn: prioMeta.kn,
         quantity: item.quantity,
         unitPrice: Number(item.unit_price),
         totalPrice: itemTotal,

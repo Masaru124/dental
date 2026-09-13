@@ -52,7 +52,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
-  const [lang, setLang] = useState<'en' | 'hi'>('en');
+  const [lang, setLang] = useState<'en' | 'hi' | 'kn'>('en');
   const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [selectedTooth, setSelectedTooth] = useState<string | null>(null);
   const [upiModalOpen, setUpiModalOpen] = useState(false);
@@ -137,12 +137,14 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
         <div className="card" style={{ maxWidth: '420px', textAlign: 'center', padding: '2.5rem' }}>
           <AlertTriangle size={48} color="var(--color-danger)" style={{ margin: '0 auto 1rem' }} />
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-            {lang === 'en' ? 'Plan Not Found or Expired' : 'उपचार योजना नहीं मिली या समाप्त हो गई'}
+            {lang === 'kn' ? 'ಚಿಕಿತ್ಸಾ ಯೋಜನೆ ಕಂಡುಬಂದಿಲ್ಲ ಅಥವಾ ಮುಕ್ತಾಯಗೊಂಡಿದೆ' : lang === 'hi' ? 'उपचार योजना नहीं मिली या समाप्त हो गई' : 'Plan Not Found or Expired'}
           </h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1.5rem' }}>
-            {lang === 'en'
-              ? 'This secure link may have expired or is invalid. Please contact the clinic for a refreshed link.'
-              : 'यह सुरक्षित लिंक समाप्त हो गया हो सकता है। कृपया क्लिनिक से संपर्क करें।'}
+            {lang === 'kn'
+              ? 'ಈ ಸುರಕ್ಷಿತ ಲಿಂಕ್ ಮುಕ್ತಾಯಗೊಂಡಿರಬಹುದು. ಹೊಸ ಲಿಂಕ್‌ಗಾಗಿ ದಯವಿಟ್ಟು ಕ್ಲಿನಿಕ್ ಅನ್ನು ಸಂಪರ್ಕಿಸಿ.'
+              : lang === 'hi'
+              ? 'यह सुरक्षित लिंक समाप्त हो गया हो सकता है। कृपया क्लिनिक से संपर्क करें।'
+              : 'This secure link may have expired or is invalid. Please contact the clinic for a refreshed link.'}
           </p>
           <a
             href="tel:+918041234567"
@@ -163,9 +165,11 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
   const selectedPlanItem = treatmentPlan.find((item: any) => item.toothNumber === selectedTooth || (item.toothRefs && item.toothRefs.includes(selectedTooth)));
 
   // WhatsApp message text
-  const waGreeting = lang === 'en'
-    ? `Hello Dr. Sharma, I am ${patient.name}. I reviewed my 3D Dental Plan for Tooth #${selectedTooth || 'all'} on the Apex Dental portal. I have a question regarding the procedure and scheduling.`
-    : `नमस्ते डॉ. शर्मा, मैं ${patient.name} हूँ। मैंने एपेक्स पोर्टल पर अपने दांत #${selectedTooth || 'सभी'} की 3D योजना देखी है। मुझे अपॉइंटमेंट और प्रक्रिया के बारे में बात करनी है।`;
+  const waGreeting = lang === 'kn'
+    ? `ನಮಸ್ಕಾರ ಡಾ. ಶರ್ಮಾ, ನಾನು ${patient.name}. ನಾನು ಅಪೆಕ್ಸ್ ಪೋರ್ಟಲ್‌ನಲ್ಲಿ ಹಲ್ಲು #${selectedTooth || 'ಎಲ್ಲಾ'} 3D ಚಿಕಿತ್ಸಾ ಯೋಜನೆಯನ್ನು ವೀಕ್ಷಿಸಿದ್ದೇನೆ. ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್ ಮತ್ತು ಚಿಕಿತ್ಸೆಯ ಬಗ್ಗೆ ಮಾತನಾಡಬೇಕಾಗಿದೆ.`
+    : lang === 'hi'
+    ? `नमस्ते डॉ. शर्मा, मैं ${patient.name} हूँ। मैंने एपेक्स पोर्टल पर अपने दांत #${selectedTooth || 'सभी'} की 3D योजना देखी है। मुझे अपॉइंटमेंट और प्रक्रिया के बारे में बात करनी है।`
+    : `Hello Dr. Sharma, I am ${patient.name}. I reviewed my 3D Dental Plan for Tooth #${selectedTooth || 'all'} on the Apex Dental portal. I have a question regarding the procedure and scheduling.`;
   const waUrl = `https://wa.me/${clinicInfo.whatsappPhone || '919876543210'}?text=${encodeURIComponent(waGreeting)}`;
 
   const handleCopyLink = () => {
@@ -179,15 +183,20 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
       stage: 'today',
       title_en: 'Today: Enamel Micro-Cavity (Early Stage)',
       title_hi: 'आज: प्रारंभिक इनेमल कैविटी (शुरुआती स्तर)',
+      title_kn: 'ಇಂದು: ಆರಂಭಿಕ ಎನಾಮೆಲ್ ಕ್ಯಾವಿಟಿ (ಮೊದಲ ಹಂತ)',
       pathology_en: 'Superficial enamel fissure decay. The underlying dentin and internal nerve pulp are 100% vital, healthy, and unharmed.',
       pathology_hi: 'सतही इनेमल कैविटी। आंतरिक नसें और डेंटिन पूरी तरह सुरक्षित और जीवित हैं।',
+      pathology_kn: 'ಮೇಲ್ಮೈ ಎನಾಮೆಲ್ ಹುಳುಕು. ಒಳಗಿನ ಡೆಂಟಿನ್ ಮತ್ತು ನರಗಳು ೧೦೦% ಸುರಕ್ಷಿತ ಮತ್ತು ಆರೋಗ್ಯಕರವಾಗಿವೆ.',
       painScore: '1 / 10',
       painDesc_en: 'Asymptomatic (No pain / Minimal sensitivity)',
       painDesc_hi: 'दर्द रहित (कोई समस्या नहीं)',
+      painDesc_kn: 'ನೋವಿಲ್ಲ (ಯಾವುದೇ ತೊಂದರೆಯಿಲ್ಲ)',
       procedure_en: '1x Conservative Composite Restoration (Tooth-Colored Filling)',
       procedure_hi: '1x कंपोजिट फिलिंग (प्राकृतिक दांत जैसा रंग)',
+      procedure_kn: '೧x ಕಾಂಪೋಸಿಟ್ ಫಿಲ್ಲಿಂಗ್ (ಹಲ್ಲಿನ ನೈಸರ್ಗಿಕ ಬಣ್ಣ)',
       sittings_en: '1 Chairside Sitting (20 mins)',
       sittings_hi: '1 बैठक (20 मिनट)',
+      sittings_kn: '೧ ಭೇಟಿ (೨೦ ನಿಮಿಷಗಳು)',
       cost: 2000,
       penalty: 0,
       badgeColor: '#10b981',
@@ -198,15 +207,20 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
       stage: '6mo',
       title_en: '+6 Months: Dentinal & Pulp Invasion (Severe Pain)',
       title_hi: '+6 महीने: नस तक संक्रमण व तीव्र दर्द',
+      title_kn: '+೬ ತಿಂಗಳು: ನರದವರೆಗೆ ಸೋಂಕು ಮತ್ತು ತೀವ್ರ ನೋವು',
       pathology_en: 'Bacterial acids penetrate dentin into the living pulp chamber. Acute irreversible pulpitis triggering nocturnal throbbing pain.',
       pathology_hi: 'बैक्टीरिया दांत की नस तक पहुंच गया है। रात में तेज धड़कता हुआ दर्द और सूजन।',
+      pathology_kn: 'ಬ್ಯಾಕ್ಟೀರಿಯಾ ಹಲ್ಲಿನ ಒಳ ನರವನ್ನು ತಲುಪಿದೆ. ರಾತ್ರಿಯಲ್ಲಿ ತೀವ್ರ ನೋವು ಮತ್ತು ಊತ ಉಂಟಾಗುತ್ತದೆ.',
       painScore: '8 / 10',
       painDesc_en: 'Severe Night Throbbing Pain',
       painDesc_hi: 'तीव्र रात का दर्द',
+      painDesc_kn: 'ರಾತ್ರಿಯ ತೀವ್ರ ಮಿಡಿಯುವ ನೋವು',
       procedure_en: 'Rotary 3D Endodontic Root Canal Therapy + CAD/CAM Zirconia Crown',
       procedure_hi: '3D रूट कैनाल ट्रीटमेंट + मजबूत ज़िरकोनिया क्राउन',
+      procedure_kn: 'ರೋಟರಿ 3D ರೂಟ್ ಕೆನಾಲ್ ಚಿಕಿತ್ಸೆ + ಜಿರ್ಕೋನಿಯಾ ಕ್ಯಾಪ್',
       sittings_en: '3 Clinical Sittings',
       sittings_hi: '3 क्लिनिकल बैठकें',
+      sittings_kn: '೩ ಕ್ಲಿನಿಕಲ್ ಭೇಟಿಗಳು',
       cost: 14500,
       penalty: 12500,
       badgeColor: '#d97706',
@@ -217,15 +231,20 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
       stage: '12mo',
       title_en: '+12 Months: Apical Abscess & Bone Destruction (Tooth Loss)',
       title_hi: '+12 महीने: हड्डी का क्षरण व दांत का नुकसान',
+      title_kn: '+೧೨ ತಿಂಗಳು: ದವಡೆ ಮೂಳೆಯ ಸವೆತ ಮತ್ತು ಹಲ್ಲು ಕಳೆದುಕೊಳ್ಳುವ ಅಪಾಯ',
       pathology_en: 'Total pulp necrosis, apical granuloma, alveolar bone resorption, and irreversible tooth loss requiring surgical replacement.',
       pathology_hi: 'पूरी तरह सड़ा हुआ दांत, मसूड़ों में पस, जबड़े की हड्डी का नुकसान और दांत निकालना अनिवार्य।',
+      pathology_kn: 'ಸಂಪೂರ್ಣ ನರ ನಾಶ, ಕೀವು ತುಂಬಿಕೊಳ್ಳುವುದು, ಮೂಳೆಯ ಸವೆತ ಮತ್ತು ಹಲ್ಲು ಕೀಳಬೇಕಾದ ಅನಿವಾರ್ಯತೆ.',
       painScore: '10 / 10',
       painDesc_en: 'Facial Swelling & Agony',
       painDesc_hi: 'चेहरे पर सूजन व असहनीय दर्द',
+      painDesc_kn: 'ಮುಖದ ಊತ ಮತ್ತು ಅಸಹನೀಯ ನೋವು',
       procedure_en: 'Surgical Extraction + Socket Bone Graft + Titanium Implant + Zirconia Crown',
       procedure_hi: 'सर्जिकल दांत निकालना + हड्डी का ग्राफ्ट + टाइटेनियम इंप्लांट + क्राउन',
+      procedure_kn: 'ಹಲ್ಲು ತೆಗೆಯುವುದು + ಬೋನ್ ಗ್ರಾಫ್ಟ್ + ಟೈಟಾನಿಯಂ ಇಂಪ್ಲಾಂಟ್ + ಕ್ಯಾಪ್',
       sittings_en: '5+ Sittings over 4 months',
       sittings_hi: '5+ बैठकें (4 महीनों में)',
+      sittings_kn: '೫+ ಭೇಟಿಗಳು (೪ ತಿಂಗಳುಗಳಲ್ಲಿ)',
       cost: 42000,
       penalty: 40000,
       badgeColor: '#dc2626',
@@ -287,7 +306,9 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
     e.preventDefault();
     if (!hasDrawn) {
       setConsentError(
-        lang === 'en'
+        lang === 'kn'
+          ? 'ದಯವಿಟ್ಟು ಸಲ್ಲಿಕೆ ಮಾಡುವ ಮುನ್ನ ನಿಮ್ಮ ಸ್ಪರ್ಶ ಅಥವಾ ಮೌಸ್ ಸಹಿಯನ್ನು ಹಾಕಿ.'
+          : lang === 'en'
           ? 'Please provide your touch or mouse signature before submitting.'
           : 'कृपया सहमति पत्र जमा करने से पहले अपना हस्ताक्षर करें।'
       );
@@ -363,6 +384,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
               }}
             >
               <button
+                id="portal-lang-en"
                 onClick={() => setLang('en')}
                 style={{
                   padding: '4px 10px',
@@ -379,6 +401,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 English
               </button>
               <button
+                id="portal-lang-hi"
                 onClick={() => setLang('hi')}
                 style={{
                   padding: '4px 10px',
@@ -393,6 +416,23 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 }}
               >
                 हिंदी
+              </button>
+              <button
+                id="portal-lang-kn"
+                onClick={() => setLang('kn')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  fontWeight: lang === 'kn' ? 700 : 500,
+                  background: lang === 'kn' ? 'var(--color-surface)' : 'transparent',
+                  color: lang === 'kn' ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  border: 'none',
+                  boxShadow: lang === 'kn' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                ಕನ್ನಡ
               </button>
             </div>
 
@@ -454,11 +494,13 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 letterSpacing: '0.04em',
               }}
             >
-              🔒 72-Hour Price Guarantee
+              {lang === 'en' ? '🔒 72-Hour Price Guarantee' : lang === 'kn' ? '🔒 ೭೨ ಗಂಟೆಗಳ ಬೆಲೆ ಗ್ಯಾರಂಟಿ' : '🔒 72-घंटे मूल्य गारंटी'}
             </span>
             <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
               {lang === 'en'
                 ? 'Diagnostic fee waived & 10-Year Crown Warranty upgrade preserved if booked before timer expires:'
+                : lang === 'kn'
+                ? 'ಸಮಯ ಮುಗಿಯುವ ಮುನ್ನ ಕಾಯ್ದಿರಿಸಿದರೆ ರೋಗನಿರ್ಣಯ ಶುಲ್ಕ ಮನ್ನಾ ಮತ್ತು ೧೦ ವರ್ಷಗಳ ವಾರಂಟಿ ಲಭ್ಯ:'
                 : 'प्रारंभिक शुल्क माफ़ और 10-वर्षीय वारंटी अपग्रेड सुरक्षित रहेगा यदि समय समाप्त होने से पहले बुक करें:'}
             </span>
             <span
@@ -494,7 +536,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
               boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
             }}
           >
-            {lang === 'en' ? 'Lock In Guaranteed Rate' : 'गारंटीड दर सुरक्षित करें'}
+            {lang === 'en' ? 'Lock In Guaranteed Rate' : lang === 'kn' ? 'ಗ್ಯಾರಂಟಿ ಶುಲ್ಕವನ್ನು ಕಾಯ್ದಿರಿಸಿ' : 'गारंटीड दर सुरक्षित करें'}
           </button>
         </div>
       </div>
@@ -510,25 +552,27 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
         <div style={{ maxWidth: '1080px', margin: '0 auto' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', background: '#e0f2fe', color: '#0369a1', padding: '4px 12px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.75rem' }}>
             <Sparkles size={14} />
-            {lang === 'en' ? 'Interactive 3D Oral Health Record' : 'इंटरएक्टिव 3D डेंटल रिपोर्ट'}
+            {lang === 'en' ? 'Interactive 3D Oral Health Record' : lang === 'kn' ? 'ಇಂಟರ್ಯಾಕ್ಟಿವ್ ೩ಡಿ ದಂತ ಆರೋಗ್ಯ ವರದಿ' : 'इंटरएक्टिव 3D डेंटल रिपोर्ट'}
           </div>
 
           <h1 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--color-text-primary)', letterSpacing: '-0.02em', marginBottom: '0.5rem' }}>
-            {lang === 'en' ? `Welcome, ${patient.name}` : `नमस्ते, ${patient.name}`}
+            {lang === 'en' ? `Welcome, ${patient.name}` : lang === 'kn' ? `ಸುಸ್ವಾಗತ, ${patient.name}` : `नमस्ते, ${patient.name}`}
           </h1>
 
           <p style={{ fontSize: '0.925rem', color: 'var(--color-text-secondary)', maxWidth: '640px', lineHeight: 1.5 }}>
             {lang === 'en'
               ? `Your consulting doctor, ${clinicInfo.doctorName}, has prepared this digital 3D visualization of your teeth and step-by-step treatment estimate.`
+              : lang === 'kn'
+              ? `ನಿಮ್ಮ ಸಲಹಾ ವೈದ್ಯರಾದ ${clinicInfo.doctorName} ಅವರು ನಿಮ್ಮ ಹಲ್ಲುಗಳ ಡಿಜಿಟಲ್ ೩ಡಿ ಮಾದರಿ ಮತ್ತು ಹಂತ-ಹಂತದ ಚಿಕಿತ್ಸಾ ಅಂದಾಜನ್ನು ಸಿದ್ಧಪಡಿಸಿದ್ದಾರೆ.`
               : `आपके परामर्श चिकित्सक ${clinicInfo.doctorName} ने आपके दांतों का 3D विज़ुअलाइज़ेशन और चरणबद्ध उपचार अनुमान तैयार किया है।`}
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Lock size={13} /> {lang === 'en' ? 'Confidential Patient Access' : 'गोपनीय रोगी पोर्टल'}
+              <Lock size={13} /> {lang === 'en' ? 'Confidential Patient Access' : lang === 'kn' ? 'ಗೌಪ್ಯ ರೋಗಿ ಪೋರ್ಟಲ್' : 'गोपनीय रोगी पोर्टल'}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <Clock size={13} /> {lang === 'en' ? 'Valid for 14 Days' : '14 दिनों के लिए मान्य'}
+              <Clock size={13} /> {lang === 'en' ? 'Valid for 14 Days' : lang === 'kn' ? '೧೪ ದಿನಗಳವರೆಗೆ ಮಾನ್ಯ' : '14 दिनों के लिए मान्य'}
             </span>
           </div>
         </div>
@@ -543,10 +587,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
             <div className="card" style={{ padding: '0.75rem 1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
-                  {lang === 'en' ? 'Interactive Teeth Visualizer' : 'दांतों का 3D चार्ट'}
+                  {lang === 'en' ? 'Interactive Teeth Visualizer' : lang === 'kn' ? 'ಹಲ್ಲುಗಳ ೩ಡಿ ಮಾದರಿ ಪರಿಶೀಲನೆ' : 'दांतों का 3D चार्ट'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                  {lang === 'en' ? 'Tap any highlighted tooth to inspect condition' : 'किसी भी दांत को छूकर समस्या देखें'}
+                  {lang === 'en' ? 'Tap any highlighted tooth to inspect condition' : lang === 'kn' ? 'ಸ್ಥಿತಿ ತಿಳಿಯಲು ಯಾವುದೇ ಗುರುತಿಸಲಾದ ಹಲ್ಲನ್ನು ಸ್ಪರ್ಶಿಸಿ' : 'किसी भी दांत को छूकर समस्या देखें'}
                 </div>
               </div>
 
@@ -651,19 +695,19 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     </div>
                     <div>
                       <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                        {lang === 'en' ? `Tooth #${selectedTooth}` : `दांत #${selectedTooth}`}
+                        {lang === 'en' ? `Tooth #${selectedTooth}` : lang === 'kn' ? `ಹಲ್ಲು #${selectedTooth}` : `दांत #${selectedTooth}`}
                       </h4>
                       <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', textTransform: 'capitalize' }}>
                         {selectedFinding
-                          ? (lang === 'en' ? selectedFinding.friendlyDescription_en : selectedFinding.friendlyDescription_hi)
-                          : (lang === 'en' ? 'Healthy & Sound' : 'स्वस्थ दाँत')}
+                          ? (lang === 'en' ? selectedFinding.friendlyDescription_en : lang === 'kn' ? (selectedFinding.friendlyDescription_kn || selectedFinding.friendlyDescription_en) : selectedFinding.friendlyDescription_hi)
+                          : (lang === 'en' ? 'Healthy & Sound' : lang === 'kn' ? 'ಆರೋಗ್ಯಕರ ಹಲ್ಲು' : 'स्वस्थ दाँत')}
                       </span>
                     </div>
                   </div>
 
                   {selectedFinding && (
                     <span className="badge badge-warning" style={{ fontSize: '0.75rem', padding: '3px 8px' }}>
-                      {lang === 'en' ? 'Requires Attention' : 'इलाज की ज़रूरत'}
+                      {lang === 'en' ? 'Requires Attention' : lang === 'kn' ? 'ಚಿಕಿತ್ಸೆ ಅಗತ್ಯವಿದೆ' : 'इलाज की ज़रूरत'}
                     </span>
                   )}
                 </div>
@@ -671,11 +715,13 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 {selectedFinding ? (
                   <div style={{ fontSize: '0.85rem', color: 'var(--color-text-primary)', lineHeight: 1.5, background: 'var(--color-surface-subtle)', padding: '0.85rem', borderRadius: '8px' }}>
                     <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '0.25rem' }}>
-                      {lang === 'en' ? 'Doctor Observation:' : 'चिकित्सक की राय:'}
+                      {lang === 'en' ? 'Doctor Observation:' : lang === 'kn' ? 'ವೈದ್ಯರ ವೀಕ್ಷಣೆ:' : 'चिकित्सक की राय:'}
                     </div>
                     <div>
                       {lang === 'en'
                         ? (selectedFinding.notes || `Clinical finding indicates ${selectedFinding.clinicalCondition}. Timely care will restore full dental function.`)
+                        : lang === 'kn'
+                        ? (selectedFinding.notes || `${selectedFinding.friendlyDescription_kn || selectedFinding.friendlyDescription_en} ಕಂಡುಬಂದಿದೆ. ಸಕಾಲಿಕ ಚಿಕಿತ್ಸೆಯಿಂದ ಹಲ್ಲಿನ ಕಾರ್ಯಕ್ಷಮತೆ ಮರಳುತ್ತದೆ.`)
                         : (selectedFinding.notes || `${selectedFinding.friendlyDescription_hi} की पहचान हुई है। सही समय पर उपचार से समस्या का समाधान होगा।`)}
                     </div>
 
@@ -683,10 +729,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                       <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            {lang === 'en' ? 'Recommended Treatment' : 'सुझाया गया उपचार'}
+                            {lang === 'en' ? 'Recommended Treatment' : lang === 'kn' ? 'ಶಿಫಾರಸು ಮಾಡಿದ ಚಿಕಿತ್ಸೆ' : 'सुझाया गया उपचार'}
                           </div>
                           <div style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
-                            {lang === 'en' ? selectedPlanItem.friendlyProcedureName_en : selectedPlanItem.friendlyProcedureName_hi}
+                            {lang === 'en' ? selectedPlanItem.friendlyProcedureName_en : lang === 'kn' ? (selectedPlanItem.friendlyProcedureName_kn || selectedPlanItem.friendlyProcedureName_en) : selectedPlanItem.friendlyProcedureName_hi}
                           </div>
                         </div>
                         <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--color-text-primary)' }}>
@@ -699,6 +745,8 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                   <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', margin: 0 }}>
                     {lang === 'en'
                       ? 'This tooth is currently in healthy condition. Regular brushing, flossing, and 6-month preventive checkups will maintain this.'
+                      : lang === 'kn'
+                      ? 'ಈ ಹಲ್ಲು ಪ್ರಸ್ತುತ ಆರೋಗ್ಯಕರ ಸ್ಥಿತಿಯಲ್ಲಿದೆ. ದಿನವೂ ಬ್ರಶ್ ಮಾಡುವುದು ಮತ್ತು ೬ ತಿಂಗಳಿಗೊಮ್ಮೆ ತಪಾಸಣೆಯಿಂದ ಇದನ್ನು ಕಾಪಾಡಿಕೊಳ್ಳಿ.'
                       : 'यह दांत पूरी तरह स्वस्थ है। नियमित ब्रशिंग और 6 महीने की नियमित जांच से इसे स्वस्थ रखें।'}
                   </p>
                 )}
@@ -709,10 +757,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
             <div className="card" style={{ marginTop: '1rem', padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                 <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
-                  {lang === 'en' ? 'Identified Clinical Findings' : 'दांतों की प्रमुख समस्याएं'} ({findings.length})
+                  {lang === 'en' ? 'Identified Clinical Findings' : lang === 'kn' ? 'ಗುರುತಿಸಲಾದ ಹಲ್ಲಿನ ಸಮಸ್ಯೆಗಳು' : 'दांतों की प्रमुख समस्याएं'} ({findings.length})
                 </h3>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                  {lang === 'en' ? 'Click row to locate on 3D model' : '3D मॉडल पर देखने के लिए क्लिक करें'}
+                  {lang === 'en' ? 'Click row to locate on 3D model' : lang === 'kn' ? '೩ಡಿ ಮಾದರಿಯಲ್ಲಿ ನೋಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ' : '3D मॉडल पर देखने के लिए क्लिक करें'}
                 </span>
               </div>
 
@@ -754,10 +802,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
-                            {lang === 'en' ? f.friendlyDescription_en : f.friendlyDescription_hi}
+                            {lang === 'en' ? f.friendlyDescription_en : lang === 'kn' ? (f.friendlyDescription_kn || f.friendlyDescription_en) : f.friendlyDescription_hi}
                           </div>
                           <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
-                            {lang === 'en' ? `Tooth #${f.toothNumber}` : `दांत #${f.toothNumber}`}
+                            {lang === 'en' ? `Tooth #${f.toothNumber}` : lang === 'kn' ? `ಹಲ್ಲು #${f.toothNumber}` : `दांत #${f.toothNumber}`}
                             {f.surfaces && f.surfaces.length > 0 && ` • Surface (${f.surfaces.join(', ')})`}
                           </div>
                         </div>
@@ -790,11 +838,13 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                   </div>
                   <div>
                     <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
-                      {lang === 'en' ? '3D Disease Progression & Delay Penalty Simulator' : 'उपचार में देरी का जोखिम व खर्च वृद्धि सिमुलेटर'}
+                      {lang === 'en' ? '3D Disease Progression & Delay Penalty Simulator' : lang === 'kn' ? '೩ಡಿ ರೋಗ ಉಲ್ಬಣ ಮತ್ತು ವಿಳಂಬ ವೆಚ್ಚ ಸಿಮ್ಯುಲೇಟರ್' : 'उपचार में देरी का जोखिम व खर्च वृद्धि सिमुलेटर'}
                     </h3>
                     <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
                       {lang === 'en'
                         ? 'Simulate biological tooth deterioration and exponential cost escalation if delayed'
+                        : lang === 'kn'
+                        ? 'ಚಿಕಿತ್ಸೆ ವಿಳಂಬವಾದರೆ ಹಲ್ಲಿನ ಕ್ಷೀಣತೆ ಮತ್ತು ವೆಚ್ಚದ ಹೆಚ್ಚಳವನ್ನು ಪರಿಶೀಲಿಸಿ'
                         : 'इलाज टालने पर दांत का क्षरण और खर्च में भारी वृद्धि देखें'}
                     </div>
                   </div>
@@ -810,7 +860,11 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     fontWeight: 700,
                   }}
                 >
-                  {progressionStage === 'today' ? 'Early Intervention' : progressionStage === '6mo' ? 'Urgent / Pulpitis' : 'Irreversible Loss'}
+                  {progressionStage === 'today'
+                    ? (lang === 'en' ? 'Early Intervention' : lang === 'kn' ? 'ಆರಂಭಿಕ ಚಿಕಿತ್ಸೆ' : 'Early Intervention')
+                    : progressionStage === '6mo'
+                    ? (lang === 'en' ? 'Urgent / Pulpitis' : lang === 'kn' ? 'ತುರ್ತು / ನರ ಸೋಂಕು' : 'Urgent / Pulpitis')
+                    : (lang === 'en' ? 'Irreversible Loss' : lang === 'kn' ? 'ಸರಿಪಡಿಸಲಾಗದ ಹಾನಿ' : 'Irreversible Loss')}
                 </span>
               </div>
 
@@ -846,7 +900,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     gap: '2px',
                   }}
                 >
-                  <span>{lang === 'en' ? 'Today' : 'आज'}</span>
+                  <span>{lang === 'en' ? 'Today' : lang === 'kn' ? 'ಇಂದು' : 'आज'}</span>
                   <span style={{ fontSize: '0.68rem', color: '#10b981', fontWeight: 700 }}>₹2,000</span>
                 </button>
 
@@ -870,7 +924,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     gap: '2px',
                   }}
                 >
-                  <span>{lang === 'en' ? '+6 Months' : '+6 महीने'}</span>
+                  <span>{lang === 'en' ? '+6 Months' : lang === 'kn' ? '+೬ ತಿಂಗಳು' : '+6 महीने'}</span>
                   <span style={{ fontSize: '0.68rem', color: '#d97706', fontWeight: 700 }}>₹14,500</span>
                 </button>
 
@@ -894,7 +948,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     gap: '2px',
                   }}
                 >
-                  <span>{lang === 'en' ? '+12 Months' : '+12 महीने'}</span>
+                  <span>{lang === 'en' ? '+12 Months' : lang === 'kn' ? '+೧೨ ತಿಂಗಳು' : '+12 महीने'}</span>
                   <span style={{ fontSize: '0.68rem', color: '#dc2626', fontWeight: 700 }}>₹42,000</span>
                 </button>
               </div>
@@ -917,9 +971,9 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                   style={{ width: '100%', cursor: 'pointer', accentColor: activeProgression.badgeColor }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-                  <span>0 Days (Painless)</span>
-                  <span>180 Days (Nerve Pulpitis)</span>
-                  <span>365 Days (Bone Abscess)</span>
+                  <span>{lang === 'en' ? '0 Days (Painless)' : lang === 'kn' ? '೦ ದಿನಗಳು (ನೋವಿಲ್ಲ)' : '0 दिन (दर्द रहित)'}</span>
+                  <span>{lang === 'en' ? '180 Days (Nerve Pulpitis)' : lang === 'kn' ? '೧೮೦ ದಿನಗಳು (ನರ ಸೋಂಕು)' : '180 दिन (पल्पाइटिस)'}</span>
+                  <span>{lang === 'en' ? '365 Days (Bone Abscess)' : lang === 'kn' ? '೩೬೫ ದಿನಗಳು (ಮೂಳೆ ಕೀವು)' : '365 दिन (अस्थि फोड़ा)'}</span>
                 </div>
               </div>
 
@@ -936,10 +990,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: activeProgression.badgeColor }}>
-                      {lang === 'en' ? activeProgression.title_en : activeProgression.title_hi}
+                      {lang === 'en' ? activeProgression.title_en : lang === 'kn' ? activeProgression.title_kn : activeProgression.title_hi}
                     </h4>
                     <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#334155', lineHeight: 1.4 }}>
-                      {lang === 'en' ? activeProgression.pathology_en : activeProgression.pathology_hi}
+                      {lang === 'en' ? activeProgression.pathology_en : lang === 'kn' ? activeProgression.pathology_kn : activeProgression.pathology_hi}
                     </p>
                   </div>
                 </div>
@@ -947,39 +1001,39 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: `1px dashed ${activeProgression.badgeBorder}` }}>
                   <div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-                      {lang === 'en' ? 'Pain Index' : 'दर्द स्तर'}
+                      {lang === 'en' ? 'Pain Index' : lang === 'kn' ? 'ನೋವಿನ ಪ್ರಮಾಣ' : 'दर्द स्तर'}
                     </div>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem', color: activeProgression.badgeColor, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Activity size={14} />
                       <span>{activeProgression.painScore}</span>
                     </div>
                     <div style={{ fontSize: '0.7rem', color: '#475569' }}>
-                      {lang === 'en' ? activeProgression.painDesc_en : activeProgression.painDesc_hi}
+                      {lang === 'en' ? activeProgression.painDesc_en : lang === 'kn' ? activeProgression.painDesc_kn : activeProgression.painDesc_hi}
                     </div>
                   </div>
 
                   <div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-                      {lang === 'en' ? 'Clinical Treatment' : 'उपचार'}
+                      {lang === 'en' ? 'Clinical Treatment' : lang === 'kn' ? 'ಚಿಕಿತ್ಸೆ' : 'उपचार'}
                     </div>
                     <div style={{ fontWeight: 700, fontSize: '0.82rem', color: '#0f172a' }}>
-                      {lang === 'en' ? activeProgression.procedure_en : activeProgression.procedure_hi}
+                      {lang === 'en' ? activeProgression.procedure_en : lang === 'kn' ? activeProgression.procedure_kn : activeProgression.procedure_hi}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                      {lang === 'en' ? activeProgression.sittings_en : activeProgression.sittings_hi}
+                      {lang === 'en' ? activeProgression.sittings_en : lang === 'kn' ? activeProgression.sittings_kn : activeProgression.sittings_hi}
                     </div>
                   </div>
 
                   <div>
                     <div style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
-                      {lang === 'en' ? 'Estimated Total Fee' : 'अनुमानित कुल खर्च'}
+                      {lang === 'en' ? 'Estimated Total Fee' : lang === 'kn' ? 'ಅಂದಾಜು ಒಟ್ಟು ವೆಚ್ಚ' : 'अनुमानित कुल खर्च'}
                     </div>
                     <div style={{ fontWeight: 900, fontSize: '1.15rem', color: activeProgression.badgeColor }}>
                       ₹{activeProgression.cost.toLocaleString('en-IN')}
                     </div>
                     {activeProgression.penalty > 0 && (
                       <div style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 700 }}>
-                        +{lang === 'en' ? `₹${activeProgression.penalty.toLocaleString('en-IN')} Delay Cost Penalty` : `₹${activeProgression.penalty.toLocaleString('en-IN')} अतिरिक्त नुकसान`}
+                        +{lang === 'en' ? `₹${activeProgression.penalty.toLocaleString('en-IN')} Delay Cost Penalty` : lang === 'kn' ? `₹${activeProgression.penalty.toLocaleString('en-IN')} ವಿಳಂಬ ವೆಚ್ಚದ ನಷ್ಟ` : `₹${activeProgression.penalty.toLocaleString('en-IN')} अतिरिक्त नुकसान`}
                       </div>
                     )}
                   </div>
@@ -992,6 +1046,8 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 <span>
                   {lang === 'en'
                     ? 'Treating immediately preserves natural tooth enamel, avoids root canal therapy, and saves up to ₹40,000.'
+                    : lang === 'kn'
+                    ? 'ತಕ್ಷಣ ಚಿಕಿತ್ಸೆ ಪಡೆಯುವುದರಿಂದ ನೈಸರ್ಗಿಕ ಹಲ್ಲು ರಕ್ಷಿಸಲ್ಪಡುತ್ತದೆ, ರೂಟ್ ಕೆನಾಲ್ ತಪ್ಪುತ್ತದೆ ಮತ್ತು ₹೪೦,೦೦೦ ಉಳಿತಾಯವಾಗುತ್ತದೆ.'
                     : 'समय पर इलाज कराने से प्राकृतिक दांत बचता है, रूट कैनाल से बचाव होता है और ₹40,000 तक की बचत होती है।'}
                 </span>
               </div>
@@ -1002,10 +1058,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                    {lang === 'en' ? 'Projected Smile & Aesthetic Rehabilitation' : 'अनुमानित मुस्कान और पुनर्वास'}
+                    {lang === 'en' ? 'Projected Smile & Aesthetic Rehabilitation' : lang === 'kn' ? 'ನಿರೀಕ್ಷಿತ ನಗು ಮತ್ತು ಸೌಂದರ್ಯ ಪುನರ್ವಸತಿ' : 'अनुमानित मुस्कान और पुनर्वास'}
                   </h3>
                   <p style={{ margin: '2px 0 0', fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
-                    {lang === 'en' ? 'Drag the interactive slider to compare Pre-Op vs Post-Op Bio-Zirconia' : 'स्लाइडर खींचकर पहले और बाद की स्थिति की तुलना करें'}
+                    {lang === 'en' ? 'Drag the interactive slider to compare Pre-Op vs Post-Op Bio-Zirconia' : lang === 'kn' ? 'ಚಿಕಿತ್ಸೆಗೆ ಮುನ್ನ ಮತ್ತು ನಂತರದ ವ್ಯತ್ಯಾಸವನ್ನು ಸ್ಲೈಡರ್ ಮೂಲಕ ನೋಡಿ' : 'स्लाइडर खींचकर पहले और बाद की स्थिति की तुलना करें'}
                   </p>
                 </div>
                 <span id="before-after-pct" style={{ fontSize: '0.72rem', fontWeight: 700, background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', color: '#0f172a' }}>
@@ -1134,10 +1190,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                    {lang === 'en' ? 'Treatment & Cost Estimate' : 'उपचार व पारदर्शी अनुमान'}
+                    {lang === 'en' ? 'Treatment & Cost Estimate' : lang === 'kn' ? 'ಚಿಕಿತ್ಸೆ ಮತ್ತು ವೆಚ್ಚದ ಅಂದಾಜು' : 'उपचार व पारदर्शी अनुमान'}
                   </h3>
                   <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                    {lang === 'en' ? 'No hidden hospital charges • Genuine lab warranties' : 'कोई छुपा शुल्क नहीं • मूल लैब वारंटी'}
+                    {lang === 'en' ? 'No hidden hospital charges • Genuine lab warranties' : lang === 'kn' ? 'ಯಾವುದೇ ಗುಪ್ತ ಶುಲ್ಕಗಳಿಲ್ಲ • ಅಧಿಕೃತ ಲ್ಯಾಬ್ ವಾರಂಟಿ' : 'कोई छुपा शुल्क नहीं • मूल लैब वारंटी'}
                   </p>
                 </div>
                 <div className="badge badge-success" style={{ fontSize: '0.72rem' }}>
@@ -1160,15 +1216,15 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
-                          {lang === 'en' ? item.friendlyProcedureName_en : item.friendlyProcedureName_hi}
+                          {lang === 'en' ? item.friendlyProcedureName_en : lang === 'kn' ? (item.friendlyProcedureName_kn || item.friendlyProcedureName_en) : item.friendlyProcedureName_hi}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
                           {item.toothNumber === 'all'
-                            ? (lang === 'en' ? 'Full Arch / All Teeth' : 'पूरे जबड़े के लिए')
-                            : (lang === 'en' ? `Tooth #${item.toothNumber}` : `दांत #${item.toothNumber}`)}
+                            ? (lang === 'en' ? 'Full Arch / All Teeth' : lang === 'kn' ? 'ಸಂಪೂರ್ಣ ದವಡೆ / ಎಲ್ಲಾ ಹಲ್ಲುಗಳು' : 'पूरे जबड़े के लिए')
+                            : (lang === 'en' ? `Tooth #${item.toothNumber}` : lang === 'kn' ? `ಹಲ್ಲು #${item.toothNumber}` : `दांत #${item.toothNumber}`)}
                           {' • '}
                           <span style={{ color: item.priority === 'urgent' ? 'var(--color-danger)' : 'var(--color-text-muted)', fontWeight: item.priority === 'urgent' ? 700 : 500 }}>
-                            {lang === 'en' ? item.friendlyPriority_en : item.friendlyPriority_hi}
+                            {lang === 'en' ? item.friendlyPriority_en : lang === 'kn' ? (item.friendlyPriority_kn || item.friendlyPriority_en) : item.friendlyPriority_hi}
                           </span>
                         </div>
                       </div>
@@ -1189,11 +1245,11 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '0.4rem' }}>
-                  <span>{lang === 'en' ? 'Procedures Total' : 'कुल उपचार शुल्क'}</span>
+                  <span>{lang === 'en' ? 'Procedures Total' : lang === 'kn' ? 'ಒಟ್ಟು ಚಿಕಿತ್ಸಾ ಶುಲ್ಕ' : 'कुल उपचार शुल्क'}</span>
                   <span>₹{grandTotal.toLocaleString('en-IN')}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--color-success)', marginBottom: '0.75rem', fontWeight: 600 }}>
-                  <span>{lang === 'en' ? 'Doctor Digital Consultation Credit' : 'डिजिटल परामर्श छूट'}</span>
+                  <span>{lang === 'en' ? 'Doctor Digital Consultation Credit' : lang === 'kn' ? 'ಡಿಜಿಟಲ್ ಕನ್ಸಲ್ಟೇಶನ್ ರಿಯಾಯಿತಿ' : 'डिजिटल परामर्श छूट'}</span>
                   <span>- ₹0 (Waived)</span>
                 </div>
 
@@ -1209,10 +1265,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 >
                   <div>
                     <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--color-primary-dark)' }}>
-                      {lang === 'en' ? 'Net Treatment Estimate' : 'कुल देय राशि'}
+                      {lang === 'en' ? 'Net Treatment Estimate' : lang === 'kn' ? 'ಒಟ್ಟು ಪಾವತಿಸಬೇಕಾದ ಅಂದಾಜು ಮೊತ್ತ' : 'कुल देय राशि'}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: 'var(--color-primary)' }}>
-                      {lang === 'en' ? 'Includes post-op follow-ups' : 'उपचार बाद की जांच शामिल'}
+                      {lang === 'en' ? 'Includes post-op follow-ups' : lang === 'kn' ? 'ಚಿಕಿತ್ಸೆಯ ನಂತರದ ತಪಾಸಣೆ ಒಳಗೊಂಡಿದೆ' : 'उपचार बाद की जांच शामिल'}
                     </div>
                   </div>
                   <div style={{ fontWeight: 900, fontSize: '1.35rem', color: 'var(--color-primary)' }}>
@@ -1241,10 +1297,10 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     <ShieldCheck size={20} color="#059669" style={{ flexShrink: 0 }} />
                     <div>
                       <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>
-                        {lang === 'en' ? 'Medico-Legal Informed Consent Sealed' : 'डिजिटल मेडिकल सहमति प्रमाणित'}
+                        {lang === 'en' ? 'Medico-Legal Informed Consent Sealed' : lang === 'kn' ? 'ವೈದ್ಯಕೀಯ-ಕಾನೂನು ಒಪ್ಪಿಗೆ ಪತ್ರ ದೃಢೀಕರಿಸಲಾಗಿದೆ' : 'डिजिटल मेडिकल सहमति प्रमाणित'}
                       </div>
                       <div style={{ fontSize: '0.7rem', color: '#047857' }}>
-                        {lang === 'en' ? `NABH & NMC Signed • ${consentSignedAt || 'Verified'}` : `कानूनी रूप से मान्य • ${consentSignedAt || 'सत्यापित'}`}
+                        {lang === 'en' ? `NABH & NMC Signed • ${consentSignedAt || 'Verified'}` : lang === 'kn' ? `ಕಾನೂನುಬದ್ಧವಾಗಿ ಮಾನ್ಯ • ${consentSignedAt || 'ದೃಢೀಕೃತ'}` : `कानूनी रूप से मान्य • ${consentSignedAt || 'सत्यापित'}`}
                       </div>
                     </div>
                   </div>
@@ -1269,7 +1325,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     }}
                   >
                     <FileSignature size={17} />
-                    <span>{lang === 'en' ? 'Sign Medico-Legal Informed Consent' : 'सहमति पत्र पर डिजिटल हस्ताक्षर करें'}</span>
+                    <span>{lang === 'en' ? 'Sign Medico-Legal Informed Consent' : lang === 'kn' ? 'ವೈದ್ಯಕೀಯ-ಕಾನೂನು ಒಪ್ಪಿಗೆ ಪತ್ರಕ್ಕೆ ಡಿಜಿಟಲ್ ಸಹಿ ಮಾಡಿ' : 'सहमति पत्र पर डिजिटल हस्ताक्षर करें'}</span>
                   </button>
                 )}
 
@@ -1289,11 +1345,13 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     <CheckCircle2 size={24} color="var(--color-success)" />
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
-                        {lang === 'en' ? 'Treatment Plan Accepted!' : 'उपचार योजना स्वीकृत!'}
+                        {lang === 'en' ? 'Treatment Plan Accepted!' : lang === 'kn' ? 'ಚಿಕಿತ್ಸಾ ಯೋಜನೆಯನ್ನು ಒಪ್ಪಿಕೊಳ್ಳಲಾಗಿದೆ!' : 'उपचार योजना स्वीकृत!'}
                       </div>
                       <div style={{ fontSize: '0.75rem' }}>
                         {lang === 'en'
                           ? 'Clinic team has been notified. We will call you to confirm your preferred chair slot.'
+                          : lang === 'kn'
+                          ? 'ಕ್ಲಿನಿಕ್ ತಂಡಕ್ಕೆ ತಿಳಿಸಲಾಗಿದೆ. ನಿಮ್ಮ ಸಮಯವನ್ನು ದೃಢೀಕರಿಸಲು ಶೀಘ್ರದಲ್ಲೇ ಕರೆ ಮಾಡುತ್ತೇವೆ.'
                           : 'क्लिनिक टीम को सूचित कर दिया गया है। हम जल्द ही समय पुष्टि के लिए संपर्क करेंगे।'}
                       </div>
                     </div>
@@ -1314,6 +1372,8 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                     <CheckCircle2 size={18} />
                     {lang === 'en'
                       ? `Accept Plan & Book Slot (₹${depositAmount.toLocaleString('en-IN')} Advance)`
+                      : lang === 'kn'
+                      ? `ಯೋಜನೆ ಒಪ್ಪಿಕೊಂಡು ಸ್ಲಾಟ್ ಕಾಯ್ದಿರಿಸಿ (₹${depositAmount.toLocaleString('en-IN')} ಮುಂಗಡ)`
                       : `योजना स्वीकारें और स्लॉट बुक करें (₹${depositAmount.toLocaleString('en-IN')})`}
                   </button>
                 )}
@@ -1339,7 +1399,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                   }}
                 >
                   <MessageSquare size={18} />
-                  {lang === 'en' ? 'Discuss with Dr. Sharma on WhatsApp' : 'डॉक्टर से व्हाट्सएप पर बात करें'}
+                  {lang === 'en' ? 'Discuss with Dr. Sharma on WhatsApp' : lang === 'kn' ? 'ವಾಟ್ಸಾಪ್‌ನಲ್ಲಿ ಡಾ. ಶರ್ಮಾ ಅವರೊಂದಿಗೆ ಚರ್ಚಿಸಿ' : 'डॉक्टर से व्हाट्सएप पर बात करें'}
                 </a>
 
                 <a
@@ -1347,7 +1407,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                   className="btn btn-secondary"
                   style={{ width: '100%', justifyContent: 'center', fontSize: '0.85rem', textDecoration: 'none' }}
                 >
-                  <Phone size={15} /> {lang === 'en' ? 'Call Clinic Desk' : 'क्लिनिक में कॉल करें'} ({clinicInfo.phone})
+                  <Phone size={15} /> {lang === 'en' ? 'Call Clinic Desk' : lang === 'kn' ? 'ಕ್ಲಿನಿಕ್ ಡೆಸ್ಕ್‌ಗೆ ಕರೆ ಮಾಡಿ' : 'क्लिनिक में कॉल करें'} ({clinicInfo.phone})
                 </a>
               </div>
             </div>
@@ -1387,7 +1447,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>
-                    {lang === 'en' ? 'Instant UPI Appointment Deposit' : 'त्वरित UPI टोकन राशि'}
+                    {lang === 'en' ? 'Instant UPI Appointment Deposit' : lang === 'kn' ? 'ತ್ವರಿತ UPI ಮುಂಗಡ ಠೇವಣಿ' : 'त्वरित UPI टोकन राशि'}
                   </h3>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-text-secondary)' }}>
                     Secure 256-Bit NPCI Encrypted Gateway
@@ -1505,7 +1565,11 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
               className="btn btn-primary"
               style={{ width: '100%', justifyContent: 'center', fontWeight: 700 }}
             >
-              Simulate ₹{depositAmount.toLocaleString('en-IN')} Paid
+              {lang === 'en'
+                ? `Simulate ₹${depositAmount.toLocaleString('en-IN')} Paid`
+                : lang === 'kn'
+                ? `₹${depositAmount.toLocaleString('en-IN')} ಪಾವತಿಯನ್ನು ಸಿಮ್ಯುಲೇಟ್ ಮಾಡಿ`
+                : `₹${depositAmount.toLocaleString('en-IN')} भुगतान का अनुकरण करें`}
             </button>
           </div>
         </div>
@@ -1533,7 +1597,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
       >
         <div>
           <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
-            {lang === 'en' ? 'Total Estimate' : 'कुल अनुमान'}
+            {lang === 'en' ? 'Total Estimate' : lang === 'kn' ? 'ಒಟ್ಟು ಅಂದಾಜು' : 'कुल अनुमान'}
           </div>
           <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary)' }}>
             ₹{grandTotal.toLocaleString('en-IN')}
@@ -1562,7 +1626,9 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
             className="btn btn-primary btn-sm"
             style={{ fontWeight: 700, padding: '8px 14px' }}
           >
-            {accepted ? 'Slot Confirmed' : `Accept & Pay (₹${depositAmount})`}
+            {accepted
+              ? (lang === 'en' ? 'Slot Confirmed' : lang === 'kn' ? 'ಸ್ಲಾಟ್ ದೃಢಪಟ್ಟಿದೆ' : 'स्लॉट स्वीकृत')
+              : (lang === 'en' ? `Accept & Pay (₹${depositAmount})` : lang === 'kn' ? `ಒಪ್ಪಿಕೊಂಡು ಪಾವತಿಸಿ (₹${depositAmount})` : `स्वीकारें व भुगतान करें (₹${depositAmount})`)}
           </button>
         </div>
       </div>
@@ -1603,7 +1669,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-                    {lang === 'en' ? 'Digital Medico-Legal Informed Consent' : 'डिजिटल मेडिकल सहमति पत्र'}
+                    {lang === 'en' ? 'Digital Medico-Legal Informed Consent' : lang === 'kn' ? 'ಡಿಜಿಟಲ್ ವೈದ್ಯಕೀಯ-ಕಾನೂನು ಒಪ್ಪಿಗೆ ಪತ್ರ' : 'डिजिटल मेडिकल सहमति पत्र'}
                   </h3>
                   <div style={{ fontSize: '0.7rem', color: '#64748b' }}>
                     NABH Dental Standard • ABHA #{patient.id?.toUpperCase() || 'P-101'}
@@ -1635,27 +1701,35 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                 }}
               >
                 <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '0.35rem' }}>
-                  {lang === 'en' ? 'Clinical Procedure & Risk Disclosures:' : 'उपचार व संभावित जोखिम विवरण:'}
+                  {lang === 'en' ? 'Clinical Procedure & Risk Disclosures:' : lang === 'kn' ? 'ಚಿಕಿತ್ಸಾ ವಿಧಾನ ಮತ್ತು ಸಂಭಾವ್ಯ ಅಪಾಯಗಳ ವಿವರಣೆ:' : 'उपचार व संभावित जोखिम विवरण:'}
                 </div>
                 <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <li>
                     {lang === 'en'
                       ? 'I understand that local anesthesia carries minor risks of transient tingling or temporary tissue numbness.'
+                      : lang === 'kn'
+                      ? 'ಸ್ಥಳೀಯ ಅರಿವಳಿಕೆಯು ತಾತ್ಕಾಲಿಕ ಮರಗಟ್ಟುವಿಕೆ ಉಂಟುಮಾಡಬಹುದು ಎಂದು ನಾನು ಅರ್ಥಮಾಡಿಕೊಂಡಿದ್ದೇನೆ.'
                       : 'मैं समझता/समझती हूँ कि स्थानीय एनेस्थीसिया से अस्थायी सुन्नता हो सकती है।'}
                   </li>
                   <li>
                     {lang === 'en'
                       ? 'For endodontic root canal treatments, rare complications include instrument separation or post-op flare-up requiring medication.'
+                      : lang === 'kn'
+                      ? 'ರೂಟ್ ಕೆನಾಲ್ ಚಿಕಿತ್ಸೆಯಲ್ಲಿ ಅಪರೂಪದ ಸಂದರ್ಭಗಳಲ್ಲಿ ಚಿಕಿತ್ಸೆಯ ನಂತರ ತಾತ್ಕಾಲಿಕ ನೋವು ಅಥವಾ ಔಷಧಿ ಅಗತ್ಯವಾಗಬಹುದು.'
                       : 'रूट कैनाल उपचार में दुर्लभ मामलों में दवा की आवश्यकता या हल्का दर्द हो सकता है।'}
                   </li>
                   <li>
                     {lang === 'en'
                       ? 'Crown and bridge prosthetic restorations require diligent oral hygiene and regular 6-month clinical recementation checkups.'
+                      : lang === 'kn'
+                      ? 'ಕ್ಯಾಪ್ ಮತ್ತು ಬ್ರಿಡ್ಜ್ ದೀರ್ಘಕಾಲ ಬಾಳಿಕೆ ಬರಲು ಬಾಯಿಯ ಸ್ವಚ್ಛತೆ ಮತ್ತು ೬ ತಿಂಗಳಿಗೊಮ್ಮೆ ತಪಾಸಣೆ ಅತ್ಯಗತ್ಯ.'
                       : 'क्राउन और ब्रिज के लंबे जीवन के लिए नियमित सफाई और 6 महीने में जांच अनिवार्य है।'}
                   </li>
                   <li>
                     {lang === 'en'
                       ? 'I hereby authorize Dr. Sharma and clinical team to administer diagnostic radiographic imaging and planned treatments.'
+                      : lang === 'kn'
+                      ? 'ಡಾ. ಶರ್ಮಾ ಮತ್ತು ಕ್ಲಿನಿಕ್ ತಂಡಕ್ಕೆ ಅಗತ್ಯ ಎಕ್ಸ್-ರೇ ಮತ್ತು ಚಿಕಿತ್ಸೆಗಳನ್ನು ನಡೆಸಲು ನಾನು ಸಮ್ಮತಿಸುತ್ತೇನೆ.'
                       : 'मैं डॉ. शर्मा और क्लिनिक टीम को आवश्यक एक्सरे और उपचार करने की अनुमति देता/देती हूँ।'}
                   </li>
                 </ul>
@@ -1685,7 +1759,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
               <div style={{ marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                   <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a' }}>
-                    {lang === 'en' ? 'Touch / Stylus / Mouse Signature *' : 'हस्ताक्षर (स्क्रीन पर उंगली या माउस से लिखें) *'}
+                    {lang === 'en' ? 'Touch / Stylus / Mouse Signature *' : lang === 'kn' ? 'ಡಿಜಿಟಲ್ ಸಹಿ (ಬೆರಳು ಅಥವಾ ಮೌಸ್ ಬಳಸಿ) *' : 'हस्ताक्षर (स्क्रीन पर उंगली या माउस से लिखें) *'}
                   </label>
                   <button
                     type="button"
@@ -1750,7 +1824,7 @@ export default function PatientPublicPlanPage({ params }: { params: Promise<{ to
                   style={{ background: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <CheckCircle2 size={16} />
-                  <span>{lang === 'en' ? 'Submit & Seal Legal Consent' : 'सहमति पत्र सुरक्षित जमा करें'}</span>
+                  <span>{lang === 'en' ? 'Submit & Seal Legal Consent' : lang === 'kn' ? 'ಒಪ್ಪಿಗೆ ಪತ್ರವನ್ನು ಭದ್ರವಾಗಿ ಸಲ್ಲಿಸಿ' : 'सहमति पत्र सुरक्षित जमा करें'}</span>
                 </button>
               </div>
             </form>

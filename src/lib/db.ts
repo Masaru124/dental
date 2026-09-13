@@ -350,9 +350,12 @@ export async function initDatabaseSchema() {
     CREATE TABLE IF NOT EXISTS translations (
       clinical_term TEXT PRIMARY KEY,
       friendly_en TEXT NOT NULL,
-      friendly_hi TEXT NOT NULL
+      friendly_hi TEXT NOT NULL,
+      friendly_kn TEXT
     );
   `;
+  await sql`ALTER TABLE translations ADD COLUMN IF NOT EXISTS friendly_kn TEXT;`;
+  await sql`ALTER TABLE price_list ADD COLUMN IF NOT EXISTS patient_friendly_kn TEXT;`;
 
   // ─── Activity Logs (append-only) ──────────────────────────
   await sql`
