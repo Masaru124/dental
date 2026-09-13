@@ -1,10 +1,10 @@
 import { neon } from '@neondatabase/serverless';
 
-const dbConnectionString =
-  process.env.DATABASE_URL ||
-  'postgresql://neondb_owner:npg_ArBUlX5u2LEH@ep-snowy-forest-aesgnvfr-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is not defined.');
+}
 
-export const sql = neon(dbConnectionString);
+export const sql = neon(process.env.DATABASE_URL);
 
 /**
  * DentOS v2 Schema — Multi-tenant, compliance-ready, revenue-aware
